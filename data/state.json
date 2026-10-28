@@ -4,9 +4,26 @@
   "cash": 1000.0,
   "peak_equity": 1000.0,
   "positions": {},
-  "orders": [],
+  "orders": [
+    {
+      "id": 1,
+      "symbol": "BLK",
+      "type": "stop",
+      "entry": 1161.15,
+      "stop": 1142.5,
+      "target": 1217.1,
+      "qty": 0.338,
+      "planned_risk": 7.48,
+      "reason": "Breakout ueber 10-Tage-Hoch, staerkster Tag seit 1 Woche (+1,4%), ueber SMA20; keine Quartalszahlen bis Jan; Markt neutral (Breadth 44.8, Uptrend 53.7) -> nur 1 Trade. Achtung: Widerstand 3M-Hoch 1181",
+      "created_at": "2026-10-28T16:24:21.214588+00:00",
+      "expires_at": "2026-10-28T16:00:00-04:00",
+      "triggered": false
+    }
+  ],
   "closed_trades": [],
-  "cursor": {},
+  "cursor": {
+    "BLK": "2026-10-28T12:15:00-04:00"
+  },
   "equity_curve": [
     {
       "ts": "2026-10-28T16:03:36.543338+00:00",
@@ -22,13 +39,37 @@
       "ts": "2026-10-28T16:03:43.311243+00:00",
       "equity": 1000.0,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-28T16:23:07.961607+00:00",
+      "equity": 1000.0,
+      "floor": 970.0
+    },
+    {
+      "ts": "2026-10-28T16:24:14.501433+00:00",
+      "equity": 1000.0,
+      "floor": 970.0
+    },
+    {
+      "ts": "2026-10-28T16:24:21.214588+00:00",
+      "equity": 1000.0,
+      "floor": 970.0
+    },
+    {
+      "ts": "2026-10-28T16:24:21.214588+00:00",
+      "equity": 1000.0,
+      "floor": 970.0
     }
   ],
   "events": [
     {
       "ts": "2026-10-28T16:03:21.025727+00:00",
       "text": "Challenge gestartet mit 1000.00 $"
+    },
+    {
+      "ts": "2026-10-28T16:24:21.214588+00:00",
+      "text": "Order #1 BLK stop 0.338 @ 1161.15 Stop 1142.5 Ziel 1217.1"
     }
   ],
-  "next_id": 1
+  "next_id": 2
 }
