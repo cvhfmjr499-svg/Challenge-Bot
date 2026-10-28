@@ -1,0 +1,29 @@
+# $1K-Challenge – Regeln und Risiko-Einstellungen.
+# Während einer laufenden Challenge die Risiko-Werte NICHT lockern.
+
+challenge:
+  start_balance: 1000
+  profit_target_pct: 12        # bestanden bei 1.120 $
+  max_drawdown_pct: 3          # 30 $ Puffer
+  # true: die Verlustgrenze wandert mit dem Höchststand mit (Höchststand - 30 $).
+  # false: feste Grenze bei 970 $.
+  trailing_drawdown: true
+  # true: die mitwandernde Grenze steigt nie über den Startwert (1.000 $).
+  trailing_locks_at_start: false
+
+risk:
+  risk_per_trade_pct: 0.75     # max. 7,50 $ Verlust pro Trade
+  max_room_fraction: 0.5       # nie mehr als die Hälfte des Restpuffers auf einen Trade
+  protect_fraction: 0.8        # offene Stops dürfen zusammen max. 80 % des Puffers kosten
+  min_reward_risk: 3.0         # Ziel mindestens 3x so weit weg wie der Stop
+  max_open_positions: 2        # offene Positionen + wartende Orders
+  max_position_pct: 60         # max. 60 % des Kontos in einer Position
+  min_stop_pct: 0.5
+  max_stop_pct: 6
+  pause_after_losses: 2        # nach 2 Verlusten in Folge: Rest des Tages Pause
+  daily_loss_limit_pct: 1.5    # nach 15 $ Tagesverlust: Rest des Tages Pause
+  allow_fractional: true
+
+execution:
+  entry_slippage_cap_pct: 0.3  # Einstieg max. 0,3 % über Plan, sonst keine Ausführung
+  stop_exit_slippage_pct: 0.05 # Stop-Ausführung etwas schlechter als der Stop
