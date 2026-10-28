@@ -8,7 +8,10 @@ Diese Routine führt Claude an jedem US-Handelstag aus. Alle Befehle laufen im P
 - Lehnt der Risiko-Wächter einen Trade ab, wird er nicht umgangen: kein Wechsel auf einen anderen Typ, keine erfundenen Zahlen.
 - Kein guter Trade bedeutet keinen Trade. Cash ist eine gültige Position.
 
-## Ablauf (ab 9:00 Uhr New York, vor der Eröffnung)
+## Vorbereitung (frischer Container)
+`./scripts/setup.sh` installiert Python-Pakete und die Trading-Skills.
+
+## Ablauf (ab 8:45 Uhr New York, vor der Eröffnung)
 1. **Stand holen:** `python3 -m bot update`. Ist der Status nicht `ACTIVE`, endet die Routine hier mit einer Meldung.
 2. **Marktumfeld prüfen** (Skills ohne API-Key):
    - `market-breadth-analyzer` und `uptrend-analyzer`.
@@ -26,7 +29,7 @@ Diese Routine führt Claude an jedem US-Handelstag aus. Alle Befehle laufen im P
 6. **Bericht:** `python3 -m bot status --events 10` als kurze Zusammenfassung auf Deutsch: Kontostand, Abstand zu Ziel und Grenze, neue Orders mit Begründung, geschlossene Trades.
 7. **Sichern:** `data/` committen und pushen.
 
-## Ablauf (nach 16:00 Uhr New York)
+## Ablauf (ab 16:20 Uhr New York, nach Börsenschluss)
 1. `python3 -m bot update`
 2. Kurzer Tagesbericht; geschlossene Trades in einem Satz bewerten (Plan eingehalten?).
 3. Committen und pushen.
