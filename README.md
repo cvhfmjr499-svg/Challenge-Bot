@@ -1,13 +1,16 @@
-# $1K-Challenge Paper-Bot
+# Kraken Challenge-Bot (Paper)
 
-Ein Paper-Trading-Bot für eine Challenge mit 1.000 $ Startkapital: Bestanden bei **1.120 $ (+12 %)**, durchgefallen bei **−3 %**.
+Ein Paper-Trading-Bot für die Kraken-Funded-Challenge mit 1.000 $ Startkapital: bestanden bei **1.120 $ (+12 %)**, Verlustgrenze fest bei **970 $**. Danach handelt er in Phase 2 weiter bis 10.000 $.
+
+**Live-Ansicht (Handy):** https://cvhfmjr499-svg.github.io/Challenge-Bot/
 
 - **Claude** analysiert den Markt mit den Trading-Skills und schlägt Trades vor (siehe [PLAYBOOK.md](PLAYBOOK.md)).
 - Der **Risiko-Wächter** (`bot/risk.py`) setzt die Challenge-Regeln als festen Code durch. Claude kann ihn nicht aushebeln.
 - Gehandelt werden **US-Aktien/ETFs und Krypto** (BTC, ETH, SOL, XRP, BNB, DOGE, ADA, AVAX, LINK, LTC, DOT, SUI).
-- Der **Paper-Broker** (`bot/engine.py`) führt Orders gegen echte 5-Minuten-Kerzen (yfinance) aus und rechnet dabei bewusst konservativ.
+- Der **Paper-Broker** (`bot/engine.py`) führt Orders gegen echte 1-Minuten-Kerzen (yfinance) aus, rechnet Krakens Spread (0,04 %) ein und rechnet bewusst konservativ.
+- **GitHub Actions** (`.github/workflows/bot-tick.yml`) rechnet alle 5 Minuten ab und schreibt die Daten für die Handy-Seite (`docs/`).
 
-## Live-Ansicht auf dem PC (Windows)
+## Optional: Live-Ansicht auf dem PC (Windows, jede Minute statt alle 5 Minuten)
 Einmalig einrichten:
 1. Git installieren: in der Eingabeaufforderung `winget install --id Git.Git -e`, danach die Eingabeaufforderung neu öffnen.
 2. Repo holen: `git clone https://github.com/cvhfmjr499-svg/Challenge-Bot C:\challenge-bot`
@@ -44,8 +47,8 @@ python3 -m pytest -q                # Regel-Tests
 | Positionsgröße | max. 60 % des Kontos |
 | Stop-Abstand | 0,5–6 % |
 | Pause | nach 2 Verlusten in Folge oder 15 $ Tagesverlust: Rest des Tages |
-| Trailing Drawdown | Grenze = Höchststand − 30 $; Stops werden automatisch nachgezogen, damit alle Stops zusammen die Grenze nicht erreichen können |
-| Ziel erreicht | alles schließen, Challenge bestanden |
+| Verlustgrenze | fest 970 $ (laut Kraken auch nach dem Bestehen); alle Stops zusammen dürfen sie nie erreichen |
+| Ziel erreicht | alles schließen, weiter in Phase 2 (1 % Risiko, bis 3 Positionen, Ziel ≥ 2:1) bis 10.000 $ |
 
 ## Wie die Simulation rechnet
 - Kauf beim Ausbruch per Stop-Limit: Liegt der Eröffnungskurs mehr als 0,3 % über dem Einstieg, gibt es keine Ausführung.
@@ -56,5 +59,5 @@ python3 -m pytest -q                # Regel-Tests
 - Krypto läuft rund um die Uhr: Auch Stops am Wochenende werden beim nächsten `update` nachträglich Kerze für Kerze abgerechnet.
 
 ## Offene Punkte
-- Echte Challenge-Regeln bestätigen: Ist der Drawdown wirklich mitwandernd? Gibt es ein Zeitlimit? Welche Instrumente sind erlaubt?
-- Alpaca-Paper-Anbindung, sobald API-Keys vorhanden sind.
+- Klären, ob Kraken Funded automatisches Handeln (Bot/API) erlaubt, bevor mit echtem Geld gestartet wird.
+- Welche Aktien Kraken Funded in Deutschland anbietet.
