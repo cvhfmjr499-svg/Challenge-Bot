@@ -1,4 +1,4 @@
-"""Local paper broker: fills orders against real 5-minute bars, conservatively.
+"""Local paper broker: fills orders against real 1- or 5-minute bars, conservatively.
 
 Rules:
 - Orders only see bars that start at or after the order was placed.
@@ -135,7 +135,7 @@ def _finish(state, prices, ts, status, why, cfg):
 
 def process_bars(state, cfg, bars, now: datetime):
     """Advance the simulation through `bars` ({symbol: DataFrame with OHLC, tz-aware index})."""
-    complete = {s: df[df.index + BAR <= now] for s, df in bars.items()}
+    complete = {s: df[df.index + df.attrs.get("bar", BAR) <= now] for s, df in bars.items()}
     timeline = sorted({ts for df in complete.values() for ts in df.index})
 
     for ts in timeline:

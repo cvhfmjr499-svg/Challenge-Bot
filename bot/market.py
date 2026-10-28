@@ -6,14 +6,21 @@ import yfinance as yf
 
 
 def intraday_bars(symbols, since: datetime):
-    """5-minute regular-session bars from `since` (yfinance keeps ~60 days)."""
-    start = max(since, datetime.now(since.tzinfo) - timedelta(days=55))
+    """Regular-session bars from `since`: 1-minute when yfinance still has them (7 days),
+    otherwise 5-minute (~60 days). Each frame carries its bar length in `attrs["bar"]`."""
+    now = datetime.now(since.tzinfo)
+    if now - since < timedelta(days=6, hours=12):
+        interval, bar, start = "1m", timedelta(minutes=1), since
+    else:
+        interval, bar, start = "5m", timedelta(minutes=5), max(since, now - timedelta(days=55))
     out = {}
     for sym in symbols:
-        df = yf.Ticker(sym).history(start=start.date(), interval="5m", prepost=False,
+        df = yf.Ticker(sym).history(start=start.date(), interval=interval, prepost=False,
                                     auto_adjust=False)
         if not df.empty:
-            out[sym] = df[["Open", "High", "Low", "Close"]].dropna()
+            df = df[["Open", "High", "Low", "Close"]].dropna()
+            df.attrs["bar"] = bar
+            out[sym] = df
     return out
 
 

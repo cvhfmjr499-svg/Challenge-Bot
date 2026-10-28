@@ -216,3 +216,14 @@ def test_goal_stops_trading(cfg, state):
     place(cfg, state, target=104.0)
     run(cfg, state, {"AAA": bars([(99.9, 100.2, 99.9, 100.1)] + [(100 + i, 101 + i, 100 + i, 101 + i) for i in range(3)])})
     assert state["status"] == "GOAL"
+
+
+def test_one_minute_bars_are_processed(cfg, state):
+    place(cfg, state, typ="market")
+    idx = [T0 + timedelta(minutes=i) for i in range(3)]
+    df = pd.DataFrame([(100, 100.1, 99.9, 100), (100, 100, 99, 99.5), (99.5, 99.5, 97.5, 98)],
+                      columns=["Open", "High", "Low", "Close"], index=pd.DatetimeIndex(idx))
+    df.attrs["bar"] = timedelta(minutes=1)
+    engine.process_bars(state, cfg, {"AAA": df}, T0 + timedelta(minutes=3))
+    assert state["closed_trades"][0]["exit_reason"] == "Stop"
+    assert state["closed_trades"][0]["exit_ts"] == idx[2].isoformat()

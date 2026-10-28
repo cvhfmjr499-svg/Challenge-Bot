@@ -39,8 +39,8 @@ def _trade_rows(state):
 def _candles(symbols):
     rows = []
     for sym in symbols:
-        df = yf.Ticker(sym).history(period="10d", interval="1h", prepost=False)
-        for ts, b in df.dropna().iterrows():
+        df = yf.Ticker(sym).history(period="5d", interval="5m", prepost=False)
+        for ts, b in df.dropna().tail(300).iterrows():
             rows.append({"symbol": sym, "ts": ts.tz_convert("UTC").isoformat(),
                          "open": round(float(b["Open"]), 6), "high": round(float(b["High"]), 6),
                          "low": round(float(b["Low"]), 6), "close": round(float(b["Close"]), 6)})

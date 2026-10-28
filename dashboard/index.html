@@ -88,7 +88,7 @@
     <div class="cb-row">
       <div>
         <h2>Kursverlauf mit Einstieg, Stop und Ziel</h2>
-        <p class="cb-note">1-Stunden-Kerzen der letzten 10 Tage. Gestrichelte Linien zeigen die Marken des Trades.</p>
+        <p class="cb-note">5-Minuten-Kerzen, die letzten 300 (Aktien: gut 4 Handelstage, Krypto: 25 Stunden). Gestrichelte Linien zeigen die Marken des Trades.</p>
       </div>
       <select class="cb-select" id="cb-symbol" aria-label="Symbol" data-draw="symbols" data-source="candles"></select>
     </div>
@@ -147,6 +147,7 @@
     signed: (v) => (v > 0 ? '+' : '') + new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD' }).format(v),
     when: (iso) => new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }).format(new Date(iso)),
     day: (d) => new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Berlin' }).format(d),
+    time: (d) => new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }).format(d),
   };
 
   window.cbFailed = (el, id) => {
@@ -277,15 +278,18 @@
     g.selectAll('text.tick').data(ticks).join('text').attr('x', m.l - 6).attr('y', (v) => y(v)).attr('dy', '0.32em')
       .attr('text-anchor', 'end').style('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)')
       .text((v) => cbFmt.price(v));
-    // Day labels at the first bar of each day, thinned so they never touch.
-    const firsts = bars.map((b, i) => ({ i, day: cbFmt.day(b.date) })).filter((d, k, a) => k === 0 || d.day !== a[k - 1].day);
-    let lastX = -Infinity;
-    firsts.forEach((d) => {
-      const xx = x(d.i);
-      if (xx - lastX < 48) return;
-      lastX = xx;
+    // Time labels every ~90px; the date is added where the day changes.
+    const every = Math.max(1, Math.ceil(90 / x.step()));
+    let prevDay = '';
+    bars.forEach((b, i) => {
+      if (i % every) return;
+      const day = cbFmt.day(b.date);
+      const label = day !== prevDay ? `${day} ${cbFmt.time(b.date)}` : cbFmt.time(b.date);
+      prevDay = day;
+      const xx = x(i);
+      if (xx + 70 > w - m.r) return;
       g.append('text').attr('x', xx).attr('y', h - 8).style('fill', 'var(--color-fg-muted)')
-        .style('font-size', 'var(--cds-font-size-caption)').text(d.day);
+        .style('font-size', 'var(--cds-font-size-caption)').text(label);
     });
 
     const bw = x.bandwidth();
