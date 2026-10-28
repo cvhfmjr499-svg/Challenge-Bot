@@ -1,1 +1,1 @@
-[{"status": "ACTIVE", "phase": "Phase 1: Challenge", "equity": 1000.0, "cash": 1000.0, "floor": 970.0, "goal": 1120.0, "start": 1000.0, "to_goal": 120.0, "room": 22.01, "trades": 0, "wins": 0, "pnl": 0, "open": 0, "orders": 1, "updated": "2026-10-28T17:01:12.849107+00:00"}]
+[{"status": "ACTIVE", "phase": "Phase 1: Challenge", "equity": 1009.29, "cash": 606.09, "floor": 970.0, "goal": 1120.0, "start": 1000.0, "to_goal": 110.71, "room": 35.95, "trades": 1, "wins": 1, "pnl": 8.46, "open": 1, "orders": 0, "updated": "2026-10-28T21:01:32.651158+00:00"}]
