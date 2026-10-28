@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 
 from . import engine, market, risk, scanner
+from .assets import normalize
 from .config import floor_equity, load_config, target_equity
 from .state import (NY, STATE_PATH, equity, load_state, log_event, new_state, now_utc,
                     save_state)
@@ -81,6 +82,7 @@ def cmd_propose(args, cfg):
     state = _load()
     now = now_utc()
     update(state, cfg, now)
+    args.symbol = normalize(args.symbol)
     entry_type, entry = args.type, args.entry
     if entry_type == "market":
         entry = round(market.last_price(args.symbol), 2)
@@ -90,7 +92,7 @@ def cmd_propose(args, cfg):
                       "risk_amount": d.risk_amount, "rejections": d.rejections,
                       "notes": d.notes}, indent=2, ensure_ascii=False))
     if d.approved and not args.dry_run:
-        engine.place_order(state, prop, d, now)
+        engine.place_order(state, prop, d, now, cfg)
         update(state, cfg, now)
         print("Order platziert.")
     save_state(state)
@@ -109,7 +111,7 @@ def cmd_cancel(args, cfg):
 
 def cmd_close(args, cfg):
     state = _load()
-    sym = args.symbol.upper()
+    sym = normalize(args.symbol)
     if sym not in state["positions"]:
         sys.exit(f"Keine Position {sym}.")
     state["positions"][sym]["close_requested"] = True
@@ -118,16 +120,35 @@ def cmd_close(args, cfg):
     print(f"{sym} wird zum Eröffnungskurs der nächsten 5-Min-Kerze geschlossen.")
 
 
+SCANS = {
+    "stocks": ("Aktien", scanner.UNIVERSE, "SPY"),
+    "crypto": ("Krypto", scanner.CRYPTO_UNIVERSE, "BTC-USD"),
+}
+
+
 def cmd_scan(args, cfg):
-    reg, rows = scanner.scan(cfg, top=args.top)
+    markets = list(SCANS) if args.market == "all" else [args.market]
+    results = {}
+    for m in markets:
+        label, universe, bench = SCANS[m]
+        reg, rows = scanner.scan(cfg, universe, args.top, bench)
+        results[m] = {"regime": reg, "benchmark": bench, "candidates": rows}
     if args.json:
-        print(json.dumps({"regime": reg, "candidates": rows}, indent=2))
+        print(json.dumps(results, indent=2))
         return
-    print(f"Marktregime (SPY vs. 50/200-Tage-Linie): {reg}")
-    print(f"{'Symbol':6} {'Kurs':>9} {'Einstieg':>9} {'Stop':>9} {'Ziel':>9} {'Stop%':>6} "
+    for m, res in results.items():
+        print(f"\n== {SCANS[m][0]} ==  Regime ({res['benchmark']} vs. 50/200-Tage-Linie): {res['regime']}"
+              f"   RS3M% relativ zu {res['benchmark']}")
+        print_scan(res["candidates"])
+        if not res["candidates"]:
+            print("  (keine Kandidaten)")
+
+
+def print_scan(rows):
+    print(f"{'Symbol':9} {'Kurs':>10} {'Einstieg':>9} {'Stop':>9} {'Ziel':>9} {'Stop%':>6} "
           f"{'Abst%':>6} {'Kontr.':>6} {'RS3M%':>6} {'Score':>6}")
     for r in rows:
-        print(f"{r['symbol']:6} {r['close']:9.2f} {r['entry']:9.2f} {r['stop']:9.2f} {r['target']:9.2f} "
+        print(f"{r['symbol']:9} {r['close']:10.4g} {r['entry']:9.4g} {r['stop']:9.4g} {r['target']:9.4g} "
               f"{r['stop_pct']:6.2f} {r['dist_pct']:6.2f} {r['contraction']:6.2f} {r['rs_3m_pct']:6.1f} "
               f"{r['score']:6.1f}")
 
@@ -150,6 +171,7 @@ def main():
     p = sub.add_parser("cancel"); p.add_argument("order_id", type=int); p.set_defaults(f=cmd_cancel)
     p = sub.add_parser("close"); p.add_argument("symbol"); p.set_defaults(f=cmd_close)
     p = sub.add_parser("scan"); p.add_argument("--top", type=int, default=10)
+    p.add_argument("--market", choices=["all", "stocks", "crypto"], default="all")
     p.add_argument("--json", action="store_true"); p.set_defaults(f=cmd_scan)
     args = ap.parse_args()
     if args.cmd == "propose" and args.type != "market" and args.entry <= 0:

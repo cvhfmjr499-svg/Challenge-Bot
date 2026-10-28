@@ -17,11 +17,14 @@ Diese Routine führt Claude an jedem US-Handelstag aus. Alle Befehle laufen im P
    - `market-breadth-analyzer` und `uptrend-analyzer`.
    - Bei Score unter 40 in beiden oder Regime `risk-off`: **keine neuen Trades heute.**
    - Bei gemischtem Bild höchstens 1 neuer Trade.
-3. **Kandidaten suchen:** `python3 -m bot scan`.
+   - **Krypto:** `crypto-regime-analyzer`. Bei `RISK_OFF` oder Score unter 40: kein neuer Krypto-Trade.
+3. **Kandidaten suchen:** `python3 -m bot scan` (Aktien und Krypto; nur eins: `--market stocks` oder `--market crypto`).
 4. **Prüfen:** Die 1–2 besten Kandidaten ansehen:
    - Bevorzugt Kandidaten mit Kontraktion < 1,0 und relativer Stärke > 0.
    - Kein Trade, wenn in den nächsten 5 Tagen Quartalszahlen anstehen (WebSearch).
    - Möglichst nicht zwei Kandidaten aus demselben Sektor.
+   - Krypto: höchstens 1 Position (der Wächter erzwingt das). Kein Krypto-Einstieg in den 24 Stunden vor FOMC- oder CPI-Terminen.
+   - Krypto-Symbole: `BTC`, `SOL`, `ETH` usw. werden automatisch zu `BTC-USD` usw. Krypto-Orders gelten 24 Stunden.
    - Stop unter einer echten Unterstützung, Ziel mindestens 3R.
 5. **Platzieren:** `python3 -m bot propose SYMBOL --entry X --stop Y --target Z --reason "..."`
    - Mit `--type stop` (Standard) kauft der Bot erst beim Ausbruch über `entry`.

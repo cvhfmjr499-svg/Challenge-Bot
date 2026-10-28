@@ -2,6 +2,7 @@
 import math
 from dataclasses import dataclass, field
 
+from .assets import is_crypto
 from .config import floor_equity, start_balance, target_equity
 from .state import equity, ny_date
 
@@ -81,6 +82,10 @@ def evaluate(cfg, state, prop: Proposal, now_iso):
     busy = len(state["positions"]) + len(state["orders"])
     if busy >= r["max_open_positions"]:
         rej.append(f"Schon {busy} Positionen/Orders offen (max {r['max_open_positions']}).")
+    if is_crypto(prop.symbol):
+        n_crypto = sum(map(is_crypto, list(state["positions"]) + [o["symbol"] for o in state["orders"]]))
+        if n_crypto >= r.get("max_crypto_positions", 1):
+            rej.append(f"Schon {n_crypto} Krypto-Position/Order offen (max {r.get('max_crypto_positions', 1)}).")
     if prop.symbol in state["positions"] or any(o["symbol"] == prop.symbol for o in state["orders"]):
         rej.append(f"{prop.symbol} ist schon offen oder bestellt.")
 

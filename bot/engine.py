@@ -15,14 +15,17 @@ Rules:
 from datetime import datetime, timedelta
 
 from . import risk
+from .assets import is_crypto
 from .config import floor_equity, target_equity
 from .state import NY, equity, log_event
 
 BAR = timedelta(minutes=5)
 
 
-def order_expiry(created: datetime):
-    """DAY order: expires at 16:00 New York of the session it was placed for."""
+def order_expiry(created: datetime, symbol="", cfg=None):
+    """Stocks: DAY order, expires 16:00 New York. Crypto (24/7): after N hours."""
+    if is_crypto(symbol):
+        return created + timedelta(hours=(cfg or {}).get("execution", {}).get("crypto_order_hours", 24))
     t = created.astimezone(NY)
     close = t.replace(hour=16, minute=0, second=0, microsecond=0)
     if t >= close:
@@ -32,7 +35,7 @@ def order_expiry(created: datetime):
     return close
 
 
-def place_order(state, prop, decision, now: datetime):
+def place_order(state, prop, decision, now: datetime, cfg=None):
     oid = state["next_id"]
     state["next_id"] += 1
     order = {
@@ -46,7 +49,7 @@ def place_order(state, prop, decision, now: datetime):
         "planned_risk": decision.risk_amount,
         "reason": prop.reason,
         "created_at": now.isoformat(),
-        "expires_at": order_expiry(now).isoformat(),
+        "expires_at": order_expiry(now, prop.symbol, cfg).isoformat(),
         "triggered": False,
     }
     state["orders"].append(order)

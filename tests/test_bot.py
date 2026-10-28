@@ -158,3 +158,30 @@ def test_market_order_does_not_chase(cfg, state):
     place(cfg, state, typ="market")
     run(cfg, state, {"AAA": bars([(101, 101.5, 100.9, 101.2)])})
     assert not state["positions"] and state["orders"]
+
+
+def test_crypto_symbol_normalization():
+    from bot.assets import normalize
+    assert normalize("btc") == "BTC-USD" and normalize("sol") == "SOL-USD"
+    assert normalize("sui") == "SUI20947-USD" and normalize("aapl") == "AAPL"
+
+
+def test_crypto_order_lives_24h(cfg, state):
+    created = datetime(2026, 10, 30, 22, 0, tzinfo=NY)  # Friday evening
+    assert engine.order_expiry(created, "BTC-USD", cfg) == created + timedelta(hours=24)
+    assert engine.order_expiry(created, "AAPL", cfg).weekday() == 0  # stock: Monday close
+
+
+def test_only_one_crypto_position(cfg, state):
+    place(cfg, state, "BTC-USD")
+    d = risk.evaluate(cfg, state, risk.Proposal("SOL-USD", 100, 98, 106), T0.isoformat())
+    assert not d.approved and any("Krypto" in r for r in d.rejections)
+    assert risk.evaluate(cfg, state, risk.Proposal("AAPL", 100, 98, 106), T0.isoformat()).approved
+
+
+def test_crypto_weekend_stop_is_processed(cfg, state):
+    place(cfg, state, "BTC-USD", typ="market")
+    saturday = datetime(2026, 10, 31, 3, 0, tzinfo=NY)
+    run(cfg, state, {"BTC-USD": bars([(100, 100.1, 99.9, 100), (99, 99, 97, 97.5)])})
+    run(cfg, state, {"BTC-USD": bars([(97.5, 98, 97, 97.5)], start=saturday)})
+    assert state["closed_trades"][0]["exit_reason"] == "Stop"
