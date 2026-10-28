@@ -6,7 +6,7 @@ from datetime import datetime
 
 from . import engine, market, risk, scanner
 from .assets import normalize
-from .config import floor_equity, load_config, target_equity
+from .config import TRADING, floor_equity, goal_equity, load_config, target_equity
 from .state import (NY, STATE_PATH, equity, load_state, log_event, new_state, now_utc,
                     save_state)
 
@@ -28,7 +28,7 @@ def cmd_init(args, cfg):
 
 def update(state, cfg, now):
     syms = set(state["positions"]) | {o["symbol"] for o in state["orders"]}
-    if syms and state["status"] == "ACTIVE":
+    if syms and state["status"] in TRADING:
         since = min([datetime.fromisoformat(state["cursor"].get(s, state["created_at"])) for s in syms]
                     + [datetime.fromisoformat(o["created_at"]) for o in state["orders"]])
         engine.process_bars(state, cfg, market.intraday_bars(sorted(syms), since), now)
@@ -49,8 +49,10 @@ def cmd_update(args, cfg):
 def print_status(state, cfg):
     eq = equity(state)
     fl = floor_equity(cfg, state["peak_equity"])
-    tg = target_equity(cfg)
-    print(f"Status:      {state['status']}")
+    phase = {"ACTIVE": "Phase 1: Challenge", "FUNDED": "Phase 2: bestanden, Ziel 10.000 $",
+             "FAILED": "Verlustgrenze gerissen", "GOAL": "10.000-$-Ziel erreicht"}
+    tg = target_equity(cfg) if state["status"] == "ACTIVE" else goal_equity(cfg)
+    print(f"Status:      {state['status']}  ({phase.get(state['status'], '')})")
     print(f"Equity:      {eq:9.2f} $   (Cash {state['cash']:.2f} $)")
     print(f"Ziel:        {tg:9.2f} $   noch {tg - eq:+.2f} $")
     print(f"Grenze:      {fl:9.2f} $   Abstand {eq - fl:.2f} $  (Höchststand {state['peak_equity']:.2f} $)")

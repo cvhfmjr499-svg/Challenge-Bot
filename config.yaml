@@ -1,13 +1,14 @@
-# $1K-Challenge – Regeln und Risiko-Einstellungen.
+# Kraken Funded $1K-Challenge – Regeln und Risiko-Einstellungen.
+# Quelle: support.kraken.com/articles/funded (Stand Okt. 2026).
 # Während einer laufenden Challenge die Risiko-Werte NICHT lockern.
 
 challenge:
   start_balance: 1000
   profit_target_pct: 12        # bestanden bei 1.120 $
   max_drawdown_pct: 3          # 30 $ Puffer
-  # true: die Verlustgrenze wandert mit dem Höchststand mit (Höchststand - 30 $).
-  # false: feste Grenze bei 970 $.
-  trailing_drawdown: true
+  # Kraken: "The max loss is always calculated against your starting balance, not your peak."
+  # -> feste Grenze bei 970 $, gilt auch nach dem Bestehen (Funded-Konto).
+  trailing_drawdown: false
   # true: die mitwandernde Grenze steigt nie über den Startwert (1.000 $).
   trailing_locks_at_start: false
 
@@ -28,4 +29,16 @@ risk:
 execution:
   entry_slippage_cap_pct: 0.3  # Einstieg max. 0,3 % über Plan, sonst keine Ausführung
   stop_exit_slippage_pct: 0.05 # Stop-Ausführung etwas schlechter als der Stop
+  spread_pct: 0.04             # Kraken: 0,04 % Spread je Seite (Kauf und Verkauf)
   crypto_order_hours: 24       # Krypto-Orders gelten 24 Stunden (Aktien: bis Börsenschluss)
+
+# Phase 2: nach dem Bestehen (+12 %) wird mit dem Funded-Konto weitergehandelt.
+# Die 970-$-Grenze bleibt laut Kraken bestehen, aber mit wachsendem Konto wird der Puffer größer.
+funded:
+  goal_equity: 10000           # Ziel des Nutzers; bei Erreichen stoppt der Bot neue Trades
+  risk:                        # überschreibt die Werte aus `risk` in Phase 2
+    risk_per_trade_pct: 1.0
+    max_room_fraction: 0.25
+    min_reward_risk: 2.0
+    max_open_positions: 3
+    daily_loss_limit_pct: 3

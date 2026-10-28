@@ -12,7 +12,9 @@ T0 = datetime(2026, 10, 27, 9, 30, tzinfo=NY)  # Tuesday
 
 @pytest.fixture
 def cfg():
-    return load_config()
+    c = load_config()
+    c["execution"]["spread_pct"] = 0  # most tests check fill logic; spread has its own test
+    return c
 
 
 @pytest.fixture
@@ -41,12 +43,11 @@ def run(cfg, state, data):
     engine.process_bars(state, cfg, data, end)
 
 
-def test_floor_trailing_and_fixed(cfg):
+def test_floor_fixed_by_default_and_trailing_option(cfg):
     assert floor_equity(cfg, 1000) == 970
-    assert floor_equity(cfg, 1050) == 1020
-    cfg["challenge"]["trailing_drawdown"] = False
-    assert floor_equity(cfg, 1050) == 970
+    assert floor_equity(cfg, 5000) == 970  # Kraken: never moves
     cfg["challenge"]["trailing_drawdown"] = True
+    assert floor_equity(cfg, 1050) == 1020
     cfg["challenge"]["trailing_locks_at_start"] = True
     assert floor_equity(cfg, 1050) == 1000
 
@@ -120,6 +121,7 @@ def test_losing_streak_pauses_trading(cfg, state):
 
 
 def test_trailing_floor_raises_stops(cfg, state):
+    cfg["challenge"]["trailing_drawdown"] = True
     place(cfg, state, target=130.0)
     # Price runs far up: peak rises, floor follows, stop must be lifted.
     run(cfg, state, {"AAA": bars([(99.9, 100.2, 99.9, 100.1)] + [(100 + i, 101 + i, 100 + i, 101 + i) for i in range(10)])})
@@ -129,12 +131,15 @@ def test_trailing_floor_raises_stops(cfg, state):
     assert worst > floor_equity(cfg, state["peak_equity"])
 
 
-def test_challenge_passes_and_flattens(cfg, state):
+def test_challenge_passes_flattens_and_continues_funded(cfg, state):
     state["cash"] = 1110.0
     state["peak_equity"] = 1110.0
     place(cfg, state)
     run(cfg, state, {"AAA": bars([(99.9, 100.2, 99.9, 100.1), (100.1, 103, 100.1, 103), (103, 106, 103, 105.9)])})
-    assert state["status"] == "PASSED" and not state["positions"]
+    assert state["status"] == "FUNDED" and not state["positions"]
+    # Phase 2 keeps trading with its own (larger) risk settings.
+    d = risk.evaluate(cfg, state, risk.Proposal("BBB", 100, 98, 104.5), (T0 + timedelta(days=1)).isoformat())
+    assert d.approved and d.risk_amount > 7.5
 
 
 def test_order_expires_end_of_day(cfg, state):
@@ -185,3 +190,29 @@ def test_crypto_weekend_stop_is_processed(cfg, state):
     run(cfg, state, {"BTC-USD": bars([(100, 100.1, 99.9, 100), (99, 99, 97, 97.5)])})
     run(cfg, state, {"BTC-USD": bars([(97.5, 98, 97, 97.5)], start=saturday)})
     assert state["closed_trades"][0]["exit_reason"] == "Stop"
+
+
+def test_spread_is_charged_on_entry_and_exit(cfg, state):
+    cfg["execution"]["spread_pct"] = 0.04
+    d = place(cfg, state)
+    run(cfg, state, {"AAA": bars([(99.9, 100.2, 99.9, 100.1), (100.1, 106.5, 100, 106.2)])})
+    t = state["closed_trades"][0]
+    assert t["entry_price"] == pytest.approx(100.04)
+    assert t["exit_price"] == pytest.approx(106 * 0.9996, abs=1e-3)
+    assert d.risk_amount <= 7.5
+
+
+def test_floor_still_applies_when_funded(cfg, state):
+    state["status"] = "FUNDED"
+    state["cash"] = 975.0
+    d = risk.evaluate(cfg, state, risk.Proposal("AAA", 100, 98, 106), T0.isoformat())
+    assert d.approved and d.risk_amount <= 0.25 * 5 + 0.01  # only a quarter of the 5 $ room
+
+
+def test_goal_stops_trading(cfg, state):
+    state["status"] = "FUNDED"
+    state["cash"] = 9990.0
+    state["peak_equity"] = 9990.0
+    place(cfg, state, target=104.0)
+    run(cfg, state, {"AAA": bars([(99.9, 100.2, 99.9, 100.1)] + [(100 + i, 101 + i, 100 + i, 101 + i) for i in range(3)])})
+    assert state["status"] == "GOAL"

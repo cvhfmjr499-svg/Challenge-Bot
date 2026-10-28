@@ -9,14 +9,16 @@ Rules:
 - Market: fills at the next bar open if that is within entry * (1 + cap),
   otherwise rests as a limit at the cap.
 - If stop and target are both touched in one bar, the stop wins.
-- The challenge fails if equity at the bar lows touches the floor; it passes when
-  equity at the bar close reaches the target. Everything is closed in both cases.
+- Kraken's spread (0.04 % per side) is charged on every fill and exit.
+- The account fails if equity at the bar lows touches the floor (both phases).
+- Phase 1 (ACTIVE) passes when equity at the bar close reaches +12 %: everything is
+  closed and trading continues in phase 2 (FUNDED) until the goal equity (GOAL).
 """
 from datetime import datetime, timedelta
 
 from . import risk
 from .assets import is_crypto
-from .config import floor_equity, target_equity
+from .config import TRADING, floor_equity, goal_equity, target_equity
 from .state import NY, equity, log_event
 
 BAR = timedelta(minutes=5)
@@ -58,7 +60,8 @@ def place_order(state, prop, decision, now: datetime, cfg=None):
     return order
 
 
-def _close_position(state, sym, price, ts, why):
+def _close_position(state, sym, price, ts, why, cfg):
+    price *= 1 - cfg["execution"].get("spread_pct", 0) / 100
     p = state["positions"].pop(sym)
     pnl = p["qty"] * (price - p["entry_price"])
     state["cash"] += p["qty"] * price
@@ -92,6 +95,7 @@ def _fill_order(state, o, bar, ts, cfg):
             price = min(cap, bar["Open"])
     if price is None:
         return False
+    price *= 1 + cfg["execution"].get("spread_pct", 0) / 100
     cost = o["qty"] * price
     if cost > state["cash"] + 1e-9:
         log_event(state, ts, f"Order #{o['id']} {o['symbol']} storniert: nicht genug Cash.")
@@ -110,23 +114,23 @@ def _fill_order(state, o, bar, ts, cfg):
 def _manage_position(state, sym, bar, ts, cfg):
     p = state["positions"][sym]
     if p.get("close_requested"):
-        _close_position(state, sym, bar["Open"], ts, "manuell")
+        _close_position(state, sym, bar["Open"], ts, "manuell", cfg)
         return
     stop_slip = cfg["execution"]["stop_exit_slippage_pct"] / 100
     if bar["Low"] <= p["stop"]:
-        _close_position(state, sym, min(p["stop"], bar["Open"]) * (1 - stop_slip), ts, "Stop")
+        _close_position(state, sym, min(p["stop"], bar["Open"]) * (1 - stop_slip), ts, "Stop", cfg)
     elif bar["High"] >= p["target"] and p["entry_ts"] != ts:
-        _close_position(state, sym, max(p["target"], bar["Open"]), ts, "Ziel")
+        _close_position(state, sym, max(p["target"], bar["Open"]), ts, "Ziel", cfg)
     else:
         p["last_price"] = bar["Close"]
 
 
-def _finish(state, prices, ts, status, why):
+def _finish(state, prices, ts, status, why, cfg):
     for sym in list(state["positions"]):
-        _close_position(state, sym, prices[sym], ts, why)
+        _close_position(state, sym, prices[sym], ts, why, cfg)
     state["orders"] = []
     state["status"] = status
-    log_event(state, ts, f"CHALLENGE {status}: Equity {equity(state):.2f} $")
+    log_event(state, ts, f"STATUS {status} ({why}): Equity {equity(state):.2f} $")
 
 
 def process_bars(state, cfg, bars, now: datetime):
@@ -135,7 +139,7 @@ def process_bars(state, cfg, bars, now: datetime):
     timeline = sorted({ts for df in complete.values() for ts in df.index})
 
     for ts in timeline:
-        if state["status"] != "ACTIVE":
+        if state["status"] not in TRADING:
             break
         ts_iso = ts.isoformat()
         lows = {}
@@ -165,10 +169,14 @@ def process_bars(state, cfg, bars, now: datetime):
         floor = floor_equity(cfg, state["peak_equity"])
         if equity(state, lows) <= floor:
             _finish(state, {s: lows.get(s, c) for s, c in closes.items()}, ts_iso,
-                    "FAILED", "Verlustgrenze")
+                    "FAILED", "Verlustgrenze", cfg)
             break
-        if eq_close >= target_equity(cfg):
-            _finish(state, closes, ts_iso, "PASSED", "Ziel erreicht")
+        if state["status"] == "ACTIVE" and eq_close >= target_equity(cfg):
+            _finish(state, closes, ts_iso, "FUNDED", "Challenge bestanden, weiter in Phase 2", cfg)
+            state["passed_at"] = ts_iso
+            continue
+        if state["status"] == "FUNDED" and eq_close >= goal_equity(cfg):
+            _finish(state, closes, ts_iso, "GOAL", "10.000-$-Ziel erreicht", cfg)
             break
         for sym, old, new in risk.protect_stops(state, cfg, closes):
             log_event(state, ts_iso, f"Stop {sym} angehoben {old:.2f} -> {new:.2f} (Puffer-Schutz)")

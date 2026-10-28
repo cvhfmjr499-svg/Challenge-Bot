@@ -32,3 +32,18 @@ def floor_equity(cfg, peak):
     if ch.get("trailing_locks_at_start"):
         floor = min(floor, start)
     return floor
+
+
+TRADING = ("ACTIVE", "FUNDED")  # ACTIVE = challenge running, FUNDED = passed, trading on
+
+
+def risk_params(cfg, state):
+    """Risk settings for the current phase."""
+    params = dict(cfg["risk"])
+    if state["status"] == "FUNDED":
+        params.update(cfg.get("funded", {}).get("risk", {}))
+    return params
+
+
+def goal_equity(cfg):
+    return float(cfg.get("funded", {}).get("goal_equity", 10000))

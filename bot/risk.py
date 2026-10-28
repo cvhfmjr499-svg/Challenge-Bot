@@ -3,7 +3,7 @@ import math
 from dataclasses import dataclass, field
 
 from .assets import is_crypto
-from .config import floor_equity, start_balance, target_equity
+from .config import TRADING, floor_equity, risk_params, start_balance, target_equity
 from .state import equity, ny_date
 
 
@@ -28,12 +28,11 @@ class Decision:
 
 def committed_risk(state, cfg):
     """Worst-case loss of all open positions and pending orders if every stop is hit."""
-    slip = cfg["execution"]["entry_slippage_cap_pct"] / 100
     total = 0.0
     for p in state["positions"].values():
         total += max(0.0, p["qty"] * (p["last_price"] - p["stop"]))
     for o in state["orders"]:
-        total += o["qty"] * (o["entry"] * (1 + slip) - o["stop"])
+        total += o["qty"] * per_share_risk(cfg, o["entry"], o["stop"])
     return total
 
 
@@ -56,14 +55,23 @@ def realized_pnl_on(state, day):
     return sum(t["pnl"] for t in state["closed_trades"] if ny_date(t["exit_ts"]) == day)
 
 
+def per_share_risk(cfg, entry, stop):
+    """Worst-case loss per unit: capped entry slippage + spread on both sides + stop slippage."""
+    ex = cfg["execution"]
+    spread = ex.get("spread_pct", 0) / 100
+    buy = entry * (1 + ex["entry_slippage_cap_pct"] / 100) * (1 + spread)
+    sell = stop * (1 - ex["stop_exit_slippage_pct"] / 100) * (1 - spread)
+    return buy - sell
+
+
 def evaluate(cfg, state, prop: Proposal, now_iso):
-    r = cfg["risk"]
+    r = risk_params(cfg, state)
     slip = cfg["execution"]["entry_slippage_cap_pct"] / 100
     rej, notes = [], []
     today = ny_date(now_iso)
 
-    if state["status"] != "ACTIVE":
-        rej.append(f"Challenge ist beendet ({state['status']}).")
+    if state["status"] not in TRADING:
+        rej.append(f"Handel gestoppt (Status {state['status']}).")
     if prop.entry_type not in ("stop", "limit", "market"):
         rej.append(f"Unbekannter Order-Typ {prop.entry_type}.")
     if not (prop.stop < prop.entry < prop.target):
@@ -105,7 +113,7 @@ def evaluate(cfg, state, prop: Proposal, now_iso):
         return Decision(False, rejections=rej)
 
     # Risk per share includes the worst allowed entry slippage.
-    per_share = prop.entry * (1 + slip) - prop.stop
+    per_share = per_share_risk(cfg, prop.entry, prop.stop)
     qty = budget / per_share
     max_notional = min(eq * r["max_position_pct"] / 100, state["cash"])
     if qty * prop.entry * (1 + slip) > max_notional:
@@ -116,7 +124,7 @@ def evaluate(cfg, state, prop: Proposal, now_iso):
         rej.append("Positionsgröße wäre 0.")
 
     risk_amount = qty * per_share
-    if eq + qty * (prop.target - prop.entry) >= target_equity(cfg):
+    if state["status"] == "ACTIVE" and eq + qty * (prop.target - prop.entry) >= target_equity(cfg):
         notes.append("Dieser Trade allein könnte das Challenge-Ziel erreichen.")
     notes.append(f"Restpuffer vor Trade: {free:.2f} $, Budget: {budget:.2f} $.")
     return Decision(not rej, qty, round(risk_amount, 2), rej, notes)
@@ -132,7 +140,7 @@ def protect_stops(state, cfg, prices):
     if not state["positions"]:
         return []
     eq = equity(state, prices)
-    allowed = cfg["risk"]["protect_fraction"] * (eq - floor_equity(cfg, state["peak_equity"]))
+    allowed = risk_params(cfg, state)["protect_fraction"] * (eq - floor_equity(cfg, state["peak_equity"]))
     exposure = {s: max(0.0, p["qty"] * (prices.get(s, p["last_price"]) - p["stop"]))
                 for s, p in state["positions"].items()}
     total = sum(exposure.values())
