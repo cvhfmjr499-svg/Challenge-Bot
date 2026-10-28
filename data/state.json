@@ -1,7 +1,7 @@
 {
   "status": "ACTIVE",
   "created_at": "2026-10-28T16:03:21.025727+00:00",
-  "cash": 403.59958522,
+  "cash": 1.2289613240000108,
   "peak_equity": 1002.7195327297657,
   "positions": {
     "ETH-USD": {
@@ -10,34 +10,30 @@
       "stop": 2326.2,
       "target": 2372.96,
       "entry_ts": "2026-10-28T17:43:00+00:00",
-      "last_price": 2342.360107421875,
+      "last_price": 2341.02001953125,
       "initial_risk": 3.22,
       "reason": "Intraday: Ausbruch ueber 30-Min-Hoch, ueber VWAP, EMA9>EMA21",
       "close_requested": false
-    }
-  },
-  "orders": [
-    {
-      "id": 4,
-      "symbol": "TSLA",
-      "type": "stop",
-      "entry": 403.42,
+    },
+    "TSLA": {
+      "qty": 0.997,
+      "entry_price": 403.5814,
       "stop": 401.06,
       "target": 410.5,
-      "qty": 0.997,
-      "planned_risk": 4.08,
+      "entry_ts": "2026-10-28T18:30:00+00:00",
+      "last_price": 403.0740051269531,
+      "initial_risk": 2.51,
       "reason": "Intraday: knapp unter 30-Min-Hoch, ueber VWAP, EMA9>EMA21, Volumen 3x Durchschnitt",
-      "created_at": "2026-10-28T18:17:13.717902+00:00",
-      "expires_at": "2026-10-28T18:47:13.717902+00:00",
-      "triggered": false
+      "close_requested": false
     }
-  ],
+  },
+  "orders": [],
   "closed_trades": [],
   "cursor": {
     "BLK": "2026-10-28T13:41:00-04:00",
     "GOOGL": "2026-10-28T18:13:00+00:00",
-    "ETH-USD": "2026-10-28T18:25:00+00:00",
-    "TSLA": "2026-10-28T18:25:00+00:00"
+    "ETH-USD": "2026-10-28T18:32:00+00:00",
+    "TSLA": "2026-10-28T18:32:00+00:00"
   },
   "equity_curve": [
     {
@@ -169,6 +165,11 @@
       "ts": "2026-10-28T18:26:52.635061+00:00",
       "equity": 1000.9,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-28T18:33:17.624286+00:00",
+      "equity": 1000.05,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -203,8 +204,12 @@
     {
       "ts": "2026-10-28T18:17:13.717902+00:00",
       "text": "Order #4 TSLA stop 0.997 @ 403.42 Stop 401.06 Ziel 410.5"
+    },
+    {
+      "ts": "2026-10-28T18:30:00+00:00",
+      "text": "FILL TSLA 0.997 @ 403.58"
     }
   ],
   "next_id": 5,
-  "last_tick": "2026-10-28T18:26:54.999683+00:00"
+  "last_tick": "2026-10-28T18:33:29.293330+00:00"
 }
