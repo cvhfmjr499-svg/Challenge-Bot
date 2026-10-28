@@ -2,6 +2,11 @@
 
 Diese Routine führt Claude an jedem US-Handelstag aus. Alle Befehle laufen im Projektordner.
 
+## Abgleich mit dem Live-Programm auf dem PC
+Das Live-Programm auf dem PC des Nutzers schreibt ebenfalls `data/state.json` und pusht.
+- Vor jeder Routine: `git pull -q origin main`.
+- Wird der Push abgelehnt: `git fetch origin main && git reset --hard origin/main`, dann `python3 -m bot update` und alle neuen Orders mit `propose` erneut anlegen, danach wieder pushen.
+
 ## Feste Regeln
 - `data/state.json` niemals von Hand ändern. Nur der Bot schreibt diese Datei.
 - `config.yaml` während einer laufenden Challenge nicht lockern.

@@ -7,7 +7,8 @@ from datetime import datetime
 
 from . import engine, export, market, risk, scanner
 from .assets import normalize
-from .config import TRADING, floor_equity, goal_equity, load_config, target_equity
+from .runner import update
+from .config import floor_equity, goal_equity, load_config, target_equity
 from .state import (NY, STATE_PATH, equity, load_state, log_event, new_state, now_utc,
                     save_state)
 
@@ -25,19 +26,6 @@ def cmd_init(args, cfg):
     log_event(state, state["created_at"], f"Challenge gestartet mit {state['cash']:.2f} $")
     save_state(state)
     print_status(state, cfg)
-
-
-def update(state, cfg, now):
-    syms = set(state["positions"]) | {o["symbol"] for o in state["orders"]}
-    if syms and state["status"] in TRADING:
-        since = min([datetime.fromisoformat(state["cursor"].get(s, state["created_at"])) for s in syms]
-                    + [datetime.fromisoformat(o["created_at"]) for o in state["orders"]])
-        engine.process_bars(state, cfg, market.intraday_bars(sorted(syms), since), now)
-    else:
-        engine.process_bars(state, cfg, {}, now)
-    eq = equity(state)
-    state["equity_curve"].append({"ts": now.isoformat(), "equity": round(eq, 2),
-                                  "floor": round(floor_equity(cfg, state["peak_equity"]), 2)})
 
 
 def cmd_update(args, cfg):
@@ -156,6 +144,11 @@ def print_scan(rows):
               f"{r['score']:6.1f}")
 
 
+def cmd_live(args, cfg):
+    from . import live
+    live.run(use_sync=not args.no_sync, port=args.port, open_browser=not args.no_browser)
+
+
 def cmd_export(args, cfg):
     state = _load()
     counts = export.export(state, cfg, Path(args.out), now_utc().isoformat())
@@ -182,6 +175,11 @@ def main():
     p = sub.add_parser("scan"); p.add_argument("--top", type=int, default=10)
     p.add_argument("--market", choices=["all", "stocks", "crypto"], default="all")
     p.add_argument("--json", action="store_true"); p.set_defaults(f=cmd_scan)
+    p = sub.add_parser("live", help="Live-Ansicht im Browser + minütliche Abrechnung")
+    p.add_argument("--no-sync", action="store_true", help="ohne GitHub-Abgleich")
+    p.add_argument("--port", type=int, default=8765)
+    p.add_argument("--no-browser", action="store_true")
+    p.set_defaults(f=cmd_live)
     p = sub.add_parser("export"); p.add_argument("--out", default="data/dashboard")
     p.set_defaults(f=cmd_export)
     args = ap.parse_args()

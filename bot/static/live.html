@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Challenge-Bot Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Layout: a trading terminal. Stats strip on top, chart left, positions + live log right, history below. */
+  :root {
+    --bg: #f4f6f8; --panel: #ffffff; --line: #dde2e8; --fg: #16202b; --muted: #5d6b7a;
+    --accent: #2f6fdf; --up: #12805c; --down: #c43c3c; --warn: #b7791f;
+    --font-ui: "IBM Plex Sans", system-ui, sans-serif; --font-num: "IBM Plex Mono", ui-monospace, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1319; --panel: #151c24; --line: #263140; --fg: #e3e9f0; --muted: #8796a8;
+      --accent: #6b9bff; --up: #2fbf8a; --down: #f0676a; --warn: #e0a84a; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1319; --panel: #151c24; --line: #263140; --fg: #e3e9f0; --muted: #8796a8;
+    --accent: #6b9bff; --up: #2fbf8a; --down: #f0676a; --warn: #e0a84a; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 var(--font-ui); }
+  .wrap { max-width: 1400px; margin-inline: auto; padding-block: 16px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 14px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; justify-content: space-between; }
+  h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--muted); background: var(--panel); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.live { background: var(--up); box-shadow: 0 0 0 0 var(--up); animation: pulse 2s infinite; }
+  .dot.bad { background: var(--down); }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--up) 60%, transparent); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+  @media (prefers-reduced-motion: reduce) { .dot.live { animation: none; } }
+  .stats { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: grid; gap: 2px; }
+  .stat span { font-size: 12px; color: var(--muted); }
+  .stat b { font: 500 22px/1.2 var(--font-num); font-variant-numeric: tabular-nums; }
+  .main { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+  @media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; min-width: 0; display: grid; gap: 10px; }
+  .card h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .chart-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tabs button { font: 500 13px var(--font-num); border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+  .tabs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tabs button:focus-visible, .tabs button:hover { border-color: var(--accent); }
+  .price { font: 500 26px var(--font-num); font-variant-numeric: tabular-nums; }
+  .price small { font-size: 13px; color: var(--muted); margin-left: 6px; }
+  #chart { height: 460px; width: 100%; }
+  @media (max-width: 600px) { #chart { height: 340px; } }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); }
+  .legend i { display: inline-block; width: 16px; border-top: 2px dashed currentColor; vertical-align: middle; margin-right: 6px; }
+  .k-entry { color: var(--accent); } .k-stop { color: var(--down); } .k-target { color: var(--up); }
+  .pos { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; display: grid; gap: 4px; font-size: 13px; }
+  .pos-top { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-num); }
+  .pos-sub { color: var(--muted); font-size: 12px; font-family: var(--font-num); }
+  .pnl-up { color: var(--up); } .pnl-down { color: var(--down); }
+  .empty { color: var(--muted); font-size: 13px; }
+  .log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 330px; overflow: auto; font-size: 12px; }
+  .log li { display: grid; grid-template-columns: 44px 1fr; gap: 8px; }
+  .log time { color: var(--muted); font-family: var(--font-num); }
+  .log .fill { color: var(--accent); } .log .exit-up { color: var(--up); } .log .exit-down { color: var(--down); }
+  .tablebox { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; font-family: var(--font-num); }
+  td.num, th.num { text-align: right; }
+  .toast { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.18); font-size: 13px; max-width: min(360px, calc(100vw - 32px)); }
+  .note { font-size: 12px; color: var(--muted); margin: 0; }
+  .err { color: var(--down); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <h1>Challenge-Bot Live</h1>
+      <span class="pill" id="phase">–</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span class="pill"><span class="dot" id="feed-dot"></span><span id="feed">Kurs: verbinde…</span></span>
+      <span class="pill"><span class="dot" id="bot-dot"></span><span id="bot">Bot: startet…</span></span>
+    </div>
+  </header>
+
+  <section class="stats" aria-label="Konto">
+    <div class="stat"><span>Kontostand (live)</span><b id="s-equity">–</b></div>
+    <div class="stat"><span>Bis zum Ziel</span><b id="s-goal">–</b></div>
+    <div class="stat"><span>Abstand zur Verlustgrenze</span><b id="s-head">–</b></div>
+    <div class="stat"><span>Freier Risiko-Puffer</span><b id="s-room">–</b></div>
+  </section>
+
+  <div class="main">
+    <section class="card" aria-label="Chart">
+      <div class="chart-head">
+        <div class="tabs" id="tabs" role="group" aria-label="Symbol wählen"></div>
+        <div class="price"><span id="price">–</span><small id="price-src">1-Min-Kerzen</small></div>
+      </div>
+      <div id="chart"></div>
+      <div class="legend">
+        <span class="k-entry"><i></i>Einstieg</span><span class="k-stop"><i></i>Stop</span><span class="k-target"><i></i>Ziel</span>
+        <span>▲ Kauf &nbsp; ▼ Verkauf</span>
+      </div>
+      <p class="note">Krypto tickt im Sekundentakt über Kraken. Aktien kommen als 1-Minuten-Kerzen von Yahoo Finance mit kurzer Verzögerung. Der Bot rechnet Orders, Stops und Ziele jede Minute ab.</p>
+    </section>
+
+    <div style="display:grid;gap:14px;min-width:0">
+      <section class="card" aria-label="Offene Positionen und Orders">
+        <h2>Offen</h2>
+        <div id="open" style="display:grid;gap:8px"></div>
+      </section>
+      <section class="card" aria-label="Live-Protokoll">
+        <h2>Live-Protokoll</h2>
+        <ul class="log" id="log"></ul>
+      </section>
+    </div>
+  </div>
+
+  <section class="card" aria-label="Abgeschlossene Trades">
+    <h2>Abgeschlossene Trades</h2>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>Symbol</th><th>Kauf</th><th>Verkauf</th><th class="num">Einstieg</th><th class="num">Ausstieg</th><th class="num">Ergebnis</th><th class="num">R</th><th>Ausgang</th></tr></thead>
+        <tbody id="hist"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const usd = (v) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD' }).format(v);
+const signed = (v) => { const r = Math.round(v * 100) / 100 || 0; return (r > 0 ? '+' : '') + usd(r); };
+const px = (v) => { const a = Math.abs(v); return new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: a >= 100 ? 2 : a >= 1 ? 4 : 6 }).format(v); };
+const berlin = (sec, opts) => new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', ...opts }).format(new Date(sec * 1000));
+const hhmm = (iso) => berlin(Date.parse(iso) / 1000, { hour: '2-digit', minute: '2-digit' });
+const dmhm = (iso) => berlin(Date.parse(iso) / 1000, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const isCrypto = (s) => s.endsWith('-USD');
+const krakenPair = (s) => s.replace('SUI20947', 'SUI').replace('-USD', '/USD');
+const minute = (iso) => Math.floor(Date.parse(iso) / 60000) * 60;
+
+let state = null, symbol = null, lastPrice = {}, seenEvents = null, lines = [], bars = [], levels = [];
+
+// ---- chart
+const chart = LightweightCharts.createChart($('chart'), {
+  autoSize: true,
+  layout: { background: { color: 'transparent' }, textColor: css('--muted'), fontFamily: css('--font-num') },
+  grid: { vertLines: { color: css('--line') }, horzLines: { color: css('--line') } },
+  rightPriceScale: { borderColor: css('--line') },
+  timeScale: { borderColor: css('--line'), timeVisible: true, secondsVisible: false,
+    tickMarkFormatter: (t) => berlin(t, { hour: '2-digit', minute: '2-digit' }) },
+  localization: { locale: 'de-DE', timeFormatter: (t) => berlin(t, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), priceFormatter: px },
+  crosshair: { mode: 0 },
+});
+const series = chart.addCandlestickSeries({
+  upColor: css('--up'), downColor: css('--down'), wickUpColor: css('--up'), wickDownColor: css('--down'), borderVisible: false,
+  // Keep entry, stop and target inside the visible price range.
+  autoscaleInfoProvider: (original) => {
+    const r = original();
+    if (!r || !levels.length) return r;
+    return { ...r, priceRange: {
+      minValue: Math.min(r.priceRange.minValue, ...levels),
+      maxValue: Math.max(r.priceRange.maxValue, ...levels),
+    } };
+  },
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  chart.applyOptions({ layout: { textColor: css('--muted') }, grid: { vertLines: { color: css('--line') }, horzLines: { color: css('--line') } } });
+  series.applyOptions({ upColor: css('--up'), downColor: css('--down'), wickUpColor: css('--up'), wickDownColor: css('--down') });
+  drawLevels();
+});
+
+async function loadCandles(fit) {
+  if (!symbol) return;
+  const want = symbol;
+  try {
+    const rows = await (await fetch('/api/candles?symbol=' + encodeURIComponent(want))).json();
+    if (want !== symbol || !Array.isArray(rows)) return;
+    // Keep the live-built last candle if it is newer than Yahoo's data.
+    const live = bars.length && bars[bars.length - 1];
+    bars = rows;
+    if (live && live.time > (rows.at(-1)?.time ?? 0) && isCrypto(want)) bars.push(live);
+    series.setData(bars);
+    if (bars.length) setPrice(bars.at(-1).close, isCrypto(want) ? 'Kraken live' : 'Yahoo, 1-Min');
+    drawLevels();
+    if (fit) chart.timeScale().fitContent();
+  } catch (e) { /* the next poll retries */ }
+}
+
+function setPrice(p, src) {
+  lastPrice[symbol] = p;
+  $('price').textContent = px(p);
+  $('price-src').textContent = src;
+  renderOpen();
+}
+
+function drawLevels() {
+  lines.forEach((l) => series.removePriceLine(l));
+  lines = []; levels = [];
+  if (!state || !symbol) return;
+  const pos = state.positions.find((p) => p.symbol === symbol);
+  const ord = state.orders.find((o) => o.symbol === symbol);
+  const add = (price, color, title) => {
+    if (price == null) return;
+    levels.push(price);
+    lines.push(series.createPriceLine({ price, color, lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title }));
+  };
+  if (pos) { add(pos.entry_price, css('--accent'), 'Einstieg'); add(pos.stop, css('--down'), 'Stop'); add(pos.target, css('--up'), 'Ziel'); }
+  else if (ord) { add(ord.entry, css('--accent'), 'Order ' + ord.type); add(ord.stop, css('--down'), 'Stop'); add(ord.target, css('--up'), 'Ziel'); }
+  const marks = [];
+  state.trades.filter((t) => t.symbol === symbol).forEach((t) => {
+    marks.push({ time: minute(t.entry_ts), position: 'belowBar', color: css('--accent'), shape: 'arrowUp', text: 'Kauf' });
+    marks.push({ time: minute(t.exit_ts), position: 'aboveBar', color: t.pnl >= 0 ? css('--up') : css('--down'), shape: 'arrowDown', text: (t.pnl >= 0 ? '+' : '') + t.pnl.toFixed(2) + ' $' });
+  });
+  if (pos) marks.push({ time: minute(pos.entry_ts), position: 'belowBar', color: css('--accent'), shape: 'arrowUp', text: 'Kauf' });
+  const first = bars[0]?.time ?? 0;
+  series.setMarkers(marks.filter((m) => m.time >= first).sort((a, b) => a.time - b.time));
+}
+
+// ---- Kraken live ticks for crypto
+let ws = null, wsPair = null;
+function connectFeed() {
+  if (ws) { try { ws.close(); } catch (e) {} ws = null; }
+  if (!symbol || !isCrypto(symbol)) { feed(false, 'Kurs: Yahoo, alle 20 s'); return; }
+  wsPair = krakenPair(symbol);
+  const sock = new WebSocket('wss://ws.kraken.com/v2');
+  ws = sock;
+  sock.onopen = () => sock.send(JSON.stringify({ method: 'subscribe', params: { channel: 'ticker', symbol: [wsPair] } }));
+  sock.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.channel !== 'ticker' || !msg.data) return;
+    const d = msg.data.find((x) => x.symbol === wsPair);
+    if (!d || ws !== sock) return;
+    feed(true, 'Kurs: Kraken live');
+    tick(d.last);
+  };
+  sock.onclose = () => { if (ws === sock) { feed(false, 'Kurs: getrennt, verbinde neu…'); setTimeout(connectFeed, 3000); } };
+  sock.onerror = () => sock.close();
+}
+function tick(price) {
+  const t = Math.floor(Date.now() / 60000) * 60;
+  const last = bars.at(-1);
+  if (last && last.time === t) { last.high = Math.max(last.high, price); last.low = Math.min(last.low, price); last.close = price; }
+  else if (!last || t > last.time) bars.push({ time: t, open: last ? last.close : price, high: price, low: price, close: price });
+  series.update(bars.at(-1));
+  setPrice(price, 'Kraken live');
+}
+function feed(ok, text) { $('feed-dot').className = 'dot ' + (ok ? 'live' : ''); $('feed').textContent = text; }
+
+// ---- state
+function symbolsFromState() {
+  const s = [...state.positions.map((p) => p.symbol), ...state.orders.map((o) => o.symbol),
+             ...state.trades.slice().reverse().map((t) => t.symbol), 'BTC-USD', 'SOL-USD', 'ETH-USD'];
+  return [...new Set(s)].slice(0, 10);
+}
+
+function renderTabs() {
+  const syms = symbolsFromState();
+  if (!symbol || !syms.includes(symbol)) symbol = syms[0];
+  const tabs = $('tabs');
+  if (tabs.dataset.syms !== syms.join()) {
+    tabs.dataset.syms = syms.join();
+    tabs.replaceChildren(...syms.map((s) => {
+      const b = document.createElement('button');
+      b.textContent = s.replace('SUI20947', 'SUI').replace('-USD', '');
+      b.dataset.sym = s;
+      b.onclick = () => selectSymbol(s);
+      return b;
+    }));
+  }
+  tabs.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sym === symbol)));
+}
+
+function selectSymbol(s) {
+  if (s === symbol) return;
+  symbol = s; bars = [];
+  series.setData([]);
+  $('price').textContent = '–';
+  renderTabs(); connectFeed(); loadCandles(true);
+}
+
+function liveEquity() {
+  return state.cash + state.positions.reduce((sum, p) => sum + p.qty * (lastPrice[p.symbol] ?? p.last_price), 0);
+}
+
+function renderStats() {
+  const eq = liveEquity();
+  $('phase').textContent = state.phase;
+  $('s-equity').textContent = usd(eq);
+  $('s-goal').textContent = usd(state.goal - eq);
+  $('s-head').textContent = usd(eq - state.floor);
+  $('s-room').textContent = usd(state.room);
+  const r = state.runner;
+  const ok = !r.last_error && (r.sync === 'ok' || r.sync === null);
+  $('bot-dot').className = 'dot ' + (r.last_error ? 'bad' : r.last_run ? 'live' : '');
+  $('bot').textContent = r.last_error ? 'Bot: Fehler – ' + r.last_error
+    : r.last_run ? 'Bot: abgerechnet ' + hhmm(r.last_run) + (r.sync && r.sync !== 'ok' ? ' · GitHub: ' + r.sync : '') : 'Bot: startet…';
+}
+
+function renderOpen() {
+  if (!state) return;
+  const box = $('open');
+  const items = [];
+  state.positions.forEach((p) => {
+    const now = lastPrice[p.symbol] ?? p.last_price;
+    const pnl = p.qty * (now - p.entry_price);
+    const el = document.createElement('div'); el.className = 'pos';
+    const top = document.createElement('div'); top.className = 'pos-top';
+    const a = document.createElement('b'); a.textContent = p.symbol + ' · Position';
+    const b = document.createElement('span'); b.className = pnl >= 0 ? 'pnl-up' : 'pnl-down'; b.textContent = signed(pnl);
+    top.append(a, b);
+    const sub = document.createElement('div'); sub.className = 'pos-sub';
+    sub.textContent = `${p.qty} @ ${px(p.entry_price)} · jetzt ${px(now)} · Stop ${px(p.stop)} · Ziel ${px(p.target)}`;
+    el.append(top, sub); items.push(el);
+  });
+  state.orders.forEach((o) => {
+    const el = document.createElement('div'); el.className = 'pos';
+    const top = document.createElement('div'); top.className = 'pos-top';
+    const a = document.createElement('b'); a.textContent = `${o.symbol} · Order (${o.type})`;
+    const b = document.createElement('span'); b.className = 'pos-sub'; b.textContent = 'bis ' + dmhm(o.expires_at);
+    top.append(a, b);
+    const sub = document.createElement('div'); sub.className = 'pos-sub';
+    sub.textContent = `${o.qty} @ ${px(o.entry)} · Stop ${px(o.stop)} · Ziel ${px(o.target)} · Risiko ${usd(o.planned_risk)}`;
+    el.append(top, sub); items.push(el);
+  });
+  if (!items.length) { const e = document.createElement('p'); e.className = 'empty'; e.textContent = 'Keine offene Position und keine wartende Order.'; items.push(e); }
+  box.replaceChildren(...items);
+  renderStats();
+}
+
+function renderLog() {
+  const evs = state.events.slice().reverse();
+  $('log').replaceChildren(...evs.map((e) => {
+    const li = document.createElement('li');
+    const t = document.createElement('time'); t.textContent = hhmm(e.ts);
+    const s = document.createElement('span'); s.textContent = e.text;
+    if (e.text.startsWith('FILL')) s.className = 'fill';
+    if (e.text.startsWith('EXIT')) s.className = e.text.includes('PnL +') ? 'exit-up' : 'exit-down';
+    li.append(t, s); return li;
+  }));
+  // Toast for events that arrived while the page is open.
+  const key = state.event_count;
+  if (seenEvents !== null && key > seenEvents) {
+    const fresh = state.events.slice(-Math.min(key - seenEvents, state.events.length)).filter((e) => /^(FILL|EXIT|STATUS)/.test(e.text));
+    if (fresh.length) toast(fresh.at(-1).text);
+  }
+  seenEvents = key;
+}
+
+function renderHistory() {
+  const rows = state.trades.slice().reverse();
+  $('hist').replaceChildren(...(rows.length ? rows.map((t) => {
+    const tr = document.createElement('tr');
+    [t.symbol, dmhm(t.entry_ts), dmhm(t.exit_ts), px(t.entry_price), px(t.exit_price), signed(t.pnl), (t.r > 0 ? '+' : '') + t.r.toFixed(2), t.exit_reason]
+      .forEach((v, i) => { const td = document.createElement('td'); td.textContent = v; if (i >= 3 && i <= 6) td.className = 'num'; if (i === 5) td.classList.add(t.pnl >= 0 ? 'pnl-up' : 'pnl-down'); tr.append(td); });
+    return tr;
+  }) : [(() => { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 8; td.className = 'empty'; td.textContent = 'Noch keine abgeschlossenen Trades.'; tr.append(td); return tr; })()]));
+}
+
+let toastTimer;
+function toast(text) {
+  const t = $('toast'); t.textContent = text; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 8000);
+}
+
+async function pollState() {
+  try {
+    state = await (await fetch('/api/state')).json();
+    const first = !symbol;
+    renderTabs(); renderOpen(); renderLog(); renderHistory(); drawLevels();
+    if (first) { connectFeed(); loadCandles(true); }
+  } catch (e) {
+    $('bot-dot').className = 'dot bad'; $('bot').textContent = 'Bot: Programm nicht erreichbar';
+  }
+}
+
+pollState();
+setInterval(pollState, 5000);
+setInterval(() => loadCandles(false), 20000);
+</script>
+</body>
+</html>

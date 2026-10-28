@@ -7,6 +7,20 @@ Ein Paper-Trading-Bot für eine Challenge mit 1.000 $ Startkapital: Bestanden be
 - Gehandelt werden **US-Aktien/ETFs und Krypto** (BTC, ETH, SOL, XRP, BNB, DOGE, ADA, AVAX, LINK, LTC, DOT, SUI).
 - Der **Paper-Broker** (`bot/engine.py`) führt Orders gegen echte 5-Minuten-Kerzen (yfinance) aus und rechnet dabei bewusst konservativ.
 
+## Live-Ansicht auf dem PC (Windows)
+Einmalig einrichten:
+1. Git installieren: in der Eingabeaufforderung `winget install --id Git.Git -e`, danach die Eingabeaufforderung neu öffnen.
+2. Repo holen: `git clone https://github.com/cvhfmjr499-svg/Challenge-Bot C:\challenge-bot`
+   (beim ersten Mal öffnet sich ein GitHub-Login im Browser).
+3. Im Ordner `C:\challenge-bot` doppelt auf **`start-live.bat`** klicken.
+
+Danach öffnet sich http://localhost:8765 im Browser:
+- Krypto-Kurse ticken im Sekundentakt (Kraken), Aktien als 1-Minuten-Kerzen (Yahoo, leicht verzögert).
+- Einstieg, Stop und Ziel als Linien, Käufe und Verkäufe als Pfeile, Live-Protokoll und Kontostand.
+- Solange das Fenster offen ist, rechnet der Bot jede Minute Orders, Stops und Ziele ab und gleicht sich mit GitHub ab.
+
+Wichtig: Den Ordner `C:\challenge-bot` nicht von Hand bearbeiten. Das Programm setzt ihn bei jedem Abgleich auf den Stand von GitHub zurück.
+
 ## Befehle
 ```bash
 python3 -m bot init                 # neues Paper-Konto mit 1.000 $
@@ -16,6 +30,8 @@ python3 -m bot scan                 # Ausbruchs-Kandidaten (--market stocks|cryp
 python3 -m bot propose NVDA --entry 190.5 --stop 186 --target 204 --reason "..."  [--dry-run]
 python3 -m bot cancel 3             # wartende Order stornieren
 python3 -m bot close NVDA           # Position zur nächsten Kerze schließen
+python3 -m bot live                 # Live-Ansicht + minütliche Abrechnung (--no-sync: ohne GitHub)
+python3 -m bot export               # Daten fürs Claude-Dashboard
 python3 -m pytest -q                # Regel-Tests
 ```
 
