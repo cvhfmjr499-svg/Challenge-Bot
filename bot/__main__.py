@@ -2,9 +2,10 @@
 import argparse
 import json
 import sys
+from pathlib import Path
 from datetime import datetime
 
-from . import engine, market, risk, scanner
+from . import engine, export, market, risk, scanner
 from .assets import normalize
 from .config import TRADING, floor_equity, goal_equity, load_config, target_equity
 from .state import (NY, STATE_PATH, equity, load_state, log_event, new_state, now_utc,
@@ -155,6 +156,12 @@ def print_scan(rows):
               f"{r['score']:6.1f}")
 
 
+def cmd_export(args, cfg):
+    state = _load()
+    counts = export.export(state, cfg, Path(args.out), now_utc().isoformat())
+    print(json.dumps(counts))
+
+
 def main():
     ap = argparse.ArgumentParser(prog="bot", description="$1K-Challenge Paper-Bot")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -175,6 +182,8 @@ def main():
     p = sub.add_parser("scan"); p.add_argument("--top", type=int, default=10)
     p.add_argument("--market", choices=["all", "stocks", "crypto"], default="all")
     p.add_argument("--json", action="store_true"); p.set_defaults(f=cmd_scan)
+    p = sub.add_parser("export"); p.add_argument("--out", default="data/dashboard")
+    p.set_defaults(f=cmd_export)
     args = ap.parse_args()
     if args.cmd == "propose" and args.type != "market" and args.entry <= 0:
         ap.error("--entry ist für stop/limit Orders nötig.")

@@ -30,9 +30,22 @@ Diese Routine führt Claude an jedem US-Handelstag aus. Alle Befehle laufen im P
    - Mit `--type stop` (Standard) kauft der Bot erst beim Ausbruch über `entry`.
    - Die Begründung kurz und konkret in `--reason` schreiben.
 6. **Bericht:** `python3 -m bot status --events 10` als kurze Zusammenfassung auf Deutsch: Kontostand, Abstand zu Ziel und Grenze, neue Orders mit Begründung, geschlossene Trades.
-7. **Sichern:** `data/` committen und pushen.
+7. **Dashboard aktualisieren** (siehe unten).
+8. **Sichern:** `data/` committen und pushen.
+
+## Wochenende (nur Krypto)
+Wie der Ablauf vor der Eröffnung, aber nur `crypto-regime-analyzer` und `python3 -m bot scan --market crypto`.
 
 ## Ablauf (ab 16:20 Uhr New York, nach Börsenschluss)
 1. `python3 -m bot update`
 2. Kurzer Tagesbericht; geschlossene Trades in einem Satz bewerten (Plan eingehalten?).
-3. Committen und pushen.
+3. Dashboard aktualisieren (siehe unten).
+4. Committen und pushen.
+
+## Dashboard aktualisieren
+Dashboard: https://claude.ai/artifact/72Q5ku4zJy797kTdbDUjm6
+1. `python3 -m bot export` schreibt `data/dashboard/{summary,equity,trades,candles}.json`.
+2. Jede der vier Dateien einzeln mit dem Artifact-Tool hochladen (`asset: true`, `url` wie oben).
+3. Für jede Datei das Dokument `datasets/<name>` lesen und mit `if_version` aktualisieren:
+   `source.url` = neue `/_blob/...`-URL, `source.name` = Dateiname, `updated` = `{at: <jetzt ISO>, by: "Challenge-Bot (Claude)"}`.
+4. Die Seite selbst (`files/index.html`) nicht ändern. Ihre Quelle liegt in `dashboard/index.html`.

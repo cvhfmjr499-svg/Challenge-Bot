@@ -1,0 +1,409 @@
+<meta name="dash-one-writer">
+<style>
+  .cb { display: grid; gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); }
+  .cb-head { display: grid; gap: var(--cds-gap-xs); }
+  .cb-head h1 { margin: 0; font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); text-wrap: balance; }
+  .cb-take { margin: 0; color: var(--color-fg-muted); font-size: var(--cds-font-size-body); max-width: 70ch; }
+  .cb .cb-take b { color: var(--color-fg); font-weight: 600; }
+  .cb-phase { display: inline-block; padding: 2px var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: 999px; font-size: var(--cds-font-size-caption); color: var(--color-fg); }
+  .cb-tiles { display: grid; gap: var(--cds-gap-md); grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
+  .cb-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); min-width: 0; display: grid; gap: var(--cds-gap-sm); align-content: start; }
+  .cb-label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); letter-spacing: .02em; }
+  .cb-big { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .cb-note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: 0; }
+  .cb-card h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+  .cb-row { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm); align-items: center; justify-content: space-between; }
+  .cb-row > div { min-width: 0; }
+  .cb-select { font: inherit; font-size: var(--cds-font-size-body); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-radius: var(--cds-radius); border: 1px solid var(--color-border-line); background: var(--color-bg); color: var(--color-fg); }
+  .cb-progress { position: relative; min-height: 64px; }
+  .cb-chart { position: relative; min-height: 320px; }
+  .cb-chart.cb-small { min-height: 220px; }
+  .cb-chart svg, .cb-progress svg { display: block; }
+  .cb-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; white-space: nowrap; z-index: 2; }
+  .cb-tip-when { color: var(--cds-text-secondary); }
+  .cb-failed { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); min-height: inherit; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .cb-failed::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+  .cb-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .cb-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .cb-legend i { width: 14px; height: 0; border-top: 2px dashed currentColor; display: inline-block; }
+  .cb-legend .cb-k-entry { color: var(--cds-chart-reference); }
+  .cb-legend .cb-k-stop { color: var(--cds-chart-status-critical); }
+  .cb-legend .cb-k-target { color: var(--color-ok); }
+  .cb-legend .cb-k-floor { color: var(--cds-chart-status-critical); }
+  .cb-legend .cb-k-goal { color: var(--color-ok); }
+  .cb-grid2 { display: grid; gap: var(--cds-gap-md); grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
+  .cb-tablebox { overflow: auto; max-height: 28rem; }
+  .cb-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+  .cb-table th { position: sticky; top: 0; background: var(--color-panel); text-align: left; font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+  .cb-table td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+  .cb-table .cb-num { text-align: right; }
+  .cb-pill { display: inline-block; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--color-border-line); }
+  .cb-pos { color: var(--color-ok); }
+  .cb-neg { color: var(--color-bad); }
+  .cb-reason { max-width: 28rem; white-space: normal; color: var(--color-fg-muted); }
+  [data-dash-source-state=empty] { color: transparent; }
+  [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+  @media (max-width: 640px) { .cb-hide-narrow { display: none; } }
+</style>
+
+<div class="cb">
+  <header class="cb-head" id="ueberblick">
+    <div class="cb-row">
+      <h1>Kraken Challenge-Bot</h1>
+      <span class="cb-phase" data-draw="phase" data-source="summary" data-field="phase" data-row="0">—</span>
+    </div>
+    <p class="cb-take">Das Paper-Konto steht bei <b data-draw="equity-inline" data-source="summary" data-field="equity" data-row="0">—</b>. Bis zum Ziel fehlen <b data-draw="togo-inline" data-source="summary" data-field="to_goal" data-row="0">—</b>, bis zur Verlustgrenze sind es <b data-draw="headroom-inline" data-source="headroom" data-field="headroom" data-row="0">—</b>. Stand: <span data-draw="updated" data-source="summary" data-field="updated" data-row="0">—</span>.</p>
+  </header>
+
+  <section class="cb-tiles" id="kennzahlen">
+    <div class="cb-card">
+      <span class="cb-label">Kontostand</span>
+      <span class="cb-big" data-draw="equity" data-source="summary" data-field="equity" data-row="0">—</span>
+      <p class="cb-note">Start 1.000 $, inklusive offener Positionen</p>
+    </div>
+    <div class="cb-card">
+      <span class="cb-label">Bis zum Ziel</span>
+      <span class="cb-big" data-draw="togo" data-source="summary" data-field="to_goal" data-row="0">—</span>
+      <p class="cb-note">Ziel <span data-draw="goal" data-source="summary" data-field="goal" data-row="0">—</span></p>
+    </div>
+    <div class="cb-card">
+      <span class="cb-label">Abstand zur Verlustgrenze</span>
+      <span class="cb-big" data-draw="headroom" data-source="headroom" data-field="headroom" data-row="0">—</span>
+      <p class="cb-note">Grenze <span data-draw="floor" data-source="summary" data-field="floor" data-row="0">—</span>, fest laut Kraken</p>
+    </div>
+    <div class="cb-card">
+      <span class="cb-label">Abgeschlossene Trades</span>
+      <span class="cb-big" data-draw="trades" data-source="summary" data-field="trades" data-row="0">—</span>
+      <p class="cb-note">davon im Plus: <span data-draw="wins" data-source="summary" data-field="wins" data-row="0">—</span></p>
+    </div>
+  </section>
+
+  <section class="cb-card" id="fortschritt">
+    <h2>Weg zum Ziel</h2>
+    <p class="cb-note">Wo der Kontostand zwischen Verlustgrenze und Ziel steht.</p>
+    <div class="cb-progress" data-draw="progress" data-source="summary"></div>
+  </section>
+
+  <section class="cb-card" id="chart">
+    <div class="cb-row">
+      <div>
+        <h2>Kursverlauf mit Einstieg, Stop und Ziel</h2>
+        <p class="cb-note">1-Stunden-Kerzen der letzten 10 Tage. Gestrichelte Linien zeigen die Marken des Trades.</p>
+      </div>
+      <select class="cb-select" id="cb-symbol" aria-label="Symbol" data-draw="symbols" data-source="candles"></select>
+    </div>
+    <div class="cb-legend">
+      <span class="cb-k-entry"><i></i>Einstieg</span>
+      <span class="cb-k-stop"><i></i>Stop</span>
+      <span class="cb-k-target"><i></i>Ziel</span>
+    </div>
+    <div class="cb-chart" data-draw="candles" data-source="candles trades"></div>
+  </section>
+
+  <section class="cb-card" id="kontoverlauf">
+    <h2>Kontoverlauf</h2>
+    <p class="cb-note">Kontostand bei jedem Update des Bots.</p>
+    <div class="cb-legend">
+      <span class="cb-k-floor"><i></i>Verlustgrenze</span>
+      <span class="cb-k-goal"><i></i>Ziel</span>
+    </div>
+    <div class="cb-chart cb-small" data-draw="equity-chart" data-source="equity summary"></div>
+  </section>
+
+  <section class="cb-card" id="trades">
+    <h2>Trades und Orders</h2>
+    <p class="cb-note">Offene Positionen und wartende Orders zuerst, dann abgeschlossene Trades.</p>
+    <div class="cb-tablebox">
+      <table class="cb-table" data-source="trades" data-row-key="id">
+        <thead>
+          <tr>
+            <th data-field="symbol">Symbol</th>
+            <th data-field="status">Status</th>
+            <th data-field="opened">Eröffnet</th>
+            <th data-field="entry" class="cb-num">Einstieg</th>
+            <th data-field="stop" class="cb-num">Stop</th>
+            <th data-field="target" class="cb-num">Ziel</th>
+            <th data-field="exit" class="cb-num">Ausstieg / Kurs</th>
+            <th data-field="pnl" class="cb-num">Ergebnis</th>
+            <th data-field="r" class="cb-num">R</th>
+            <th data-field="result">Ausgang</th>
+            <th data-field="reason" class="cb-hide-narrow">Begründung</th>
+          </tr>
+        </thead>
+        <tbody data-draw="trade-rows"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+  window.cbFmt = {
+    usd: (v) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(v),
+    price: (v) => {
+      const a = Math.abs(v);
+      const digits = a >= 100 ? 2 : a >= 1 ? 4 : 6;
+      return new Intl.NumberFormat('de-DE', { minimumFractionDigits: Math.min(2, digits), maximumFractionDigits: digits }).format(v);
+    },
+    signed: (v) => (v > 0 ? '+' : '') + new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD' }).format(v),
+    when: (iso) => new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }).format(new Date(iso)),
+    day: (d) => new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Berlin' }).format(d),
+  };
+
+  window.cbFailed = (el, id) => {
+    const s = dash.data(id).status;
+    if (s === 'error' || s === 'connect' || s === 'declined') {
+      el.classList.remove('dash-skeleton');
+      const d = document.createElement('div');
+      d.className = 'cb-failed';
+      d.textContent = 'Failed to load';
+      el.replaceChildren(d);
+      return true;
+    }
+    return false;
+  };
+
+  dash.calc('headroom', {
+    title: 'Abstand zur Verlustgrenze',
+    description: 'Kontostand minus feste Verlustgrenze (970 $).',
+    inputs: ['summary'],
+    fn: (summary) => summary.map((s) => ({ headroom: Math.round((s.equity - s.floor) * 100) / 100 })),
+  });
+
+  const one = (name, id, field, fmt) => dash.draw(name, (el) => {
+    const d = dash.data(id);
+    if (d.status !== 'ok' || !d.data.length) { el.textContent = '—'; return; }
+    el.textContent = fmt(d.data[0][field]);
+  });
+  one('phase', 'summary', 'phase', (v) => v);
+  one('equity', 'summary', 'equity', cbFmt.usd);
+  one('equity-inline', 'summary', 'equity', cbFmt.usd);
+  one('togo', 'summary', 'to_goal', cbFmt.usd);
+  one('togo-inline', 'summary', 'to_goal', cbFmt.usd);
+  one('goal', 'summary', 'goal', cbFmt.usd);
+  one('floor', 'summary', 'floor', cbFmt.usd);
+  one('headroom', 'headroom', 'headroom', cbFmt.usd);
+  one('headroom-inline', 'headroom', 'headroom', cbFmt.usd);
+  one('trades', 'summary', 'trades', (v) => String(v));
+  one('wins', 'summary', 'wins', (v) => String(v));
+  one('updated', 'summary', 'updated', cbFmt.when);
+</script>
+
+<script>
+  // Progress: floor ... start ... goal, with the current equity as a marker.
+  dash.draw('progress', (el) => {
+    const d = dash.data('summary');
+    el.replaceChildren();
+    if (cbFailed(el, 'summary')) return;
+    if (d.status !== 'ok' || !d.data.length) { el.classList.add('dash-skeleton'); return; }
+    el.classList.remove('dash-skeleton');
+    const s = d.data[0];
+    const w = el.clientWidth || 600, h = 64, pad = 8;
+    const x = d3.scaleLinear([s.floor, s.goal], [pad, w - pad]).clamp(true);
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${w} ${h}`).attr('role', 'img')
+      .attr('aria-label', `Kontostand ${cbFmt.usd(s.equity)} zwischen ${cbFmt.usd(s.floor)} und ${cbFmt.usd(s.goal)}`);
+    svg.append('rect').attr('x', pad).attr('y', 22).attr('width', w - 2 * pad).attr('height', 10).attr('rx', 5)
+      .style('fill', 'var(--cds-chart-grid)');
+    const startX = x(s.start);
+    const eqX = x(s.equity);
+    svg.append('rect').attr('x', Math.min(startX, eqX)).attr('y', 22).attr('width', Math.abs(eqX - startX)).attr('height', 10)
+      .style('fill', s.equity >= s.start ? 'var(--color-ok)' : 'var(--color-bad)');
+    svg.append('line').attr('x1', startX).attr('x2', startX).attr('y1', 16).attr('y2', 38).style('stroke', 'var(--cds-chart-axis)');
+    svg.append('circle').attr('cx', eqX).attr('cy', 27).attr('r', 7).style('fill', 'var(--color-panel)')
+      .style('stroke', 'var(--color-fg)').style('stroke-width', 2);
+    const lab = (txt, xx, anchor, y) => svg.append('text').attr('x', xx).attr('y', y).attr('text-anchor', anchor)
+      .style('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text(txt);
+    lab(cbFmt.usd(s.floor), pad, 'start', 56);
+    lab(cbFmt.usd(s.goal), w - pad, 'end', 56);
+    const sl = lab('Start ' + cbFmt.usd(s.start), startX, 'middle', 56);
+    const sw = sl.node().getComputedTextLength();
+    if (startX - sw / 2 < pad + 70 || startX + sw / 2 > w - pad - 70) sl.remove();
+    const el2 = svg.append('text').attr('x', eqX).attr('y', 12).attr('text-anchor', 'middle')
+      .style('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').style('font-weight', 600)
+      .text(cbFmt.usd(s.equity));
+    const ew = el2.node().getComputedTextLength();
+    el2.attr('x', Math.max(pad + ew / 2, Math.min(w - pad - ew / 2, eqX)));
+  });
+</script>
+
+<script>
+  // Symbol picker: choices are the symbols present in the candle data.
+  dash.draw('symbols', (sel) => {
+    const c = dash.data('candles');
+    const syms = c.status === 'ok' ? [...new Set(c.data.map((r) => r.symbol))] : [];
+    sel.replaceChildren(...syms.map((s) => new Option(s.replace('-USD', ' (Krypto)'), s)));
+    const cur = dash.params().symbol;
+    sel.value = syms.includes(cur) ? cur : (syms[0] ?? '');
+    sel.onchange = () => dash.setParams({ symbol: sel.value || null });
+  });
+
+  // Candlestick chart for the picked symbol, with entry / stop / target of its latest trade.
+  dash.draw('candles', (el) => {
+    const c = dash.data('candles'), t = dash.data('trades');
+    el.replaceChildren();
+    if (cbFailed(el, 'candles')) return;
+    if (c.status !== 'ok') { el.classList.add('dash-skeleton'); return; }
+    el.classList.remove('dash-skeleton');
+    const syms = [...new Set(c.data.map((r) => r.symbol))];
+    const sym = syms.includes(dash.params().symbol) ? dash.params().symbol : syms[0];
+    const bars = c.data.filter((r) => r.symbol === sym).map((r) => ({ ...r, date: new Date(r.ts) }));
+    if (!bars.length) return;
+    const trades = t.status === 'ok' ? t.data.filter((r) => r.symbol === sym) : [];
+    const live = trades.find((r) => r.status !== 'geschlossen') ?? trades[trades.length - 1];
+    const levels = live ? [
+      { key: 'Einstieg', v: live.entry, color: 'var(--cds-chart-reference)' },
+      { key: 'Stop', v: live.stop, color: 'var(--cds-chart-status-critical)' },
+      { key: 'Ziel', v: live.target, color: 'var(--color-ok)' },
+    ].filter((l) => l.v != null) : [];
+
+    const w = el.clientWidth || 700, h = 320;
+    const lo = d3.min([...bars.map((b) => b.low), ...levels.map((l) => l.v)]);
+    const hi = d3.max([...bars.map((b) => b.high), ...levels.map((l) => l.v)]);
+    const y0 = d3.scaleLinear([lo, hi], [h - 28, 10]).nice();
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${w} ${h}`)
+      .attr('role', 'img').attr('aria-label', `Kursverlauf ${sym}`);
+    // Left margin from the widest tick label, right margin from the widest level label.
+    const probe = svg.append('g').style('font-size', 'var(--cds-font-size-caption)');
+    const ticks = y0.ticks(6);
+    const tickW = d3.max(ticks, (v) => probe.append('text').text(cbFmt.price(v)).node().getComputedTextLength()) || 40;
+    const levW = d3.max(levels, (l) => probe.append('text').text(`${l.key} ${cbFmt.price(l.v)}`).node().getComputedTextLength()) || 0;
+    probe.remove();
+    const m = { l: tickW + 10, r: levW ? levW + 10 : 8 };
+    const x = d3.scaleBand(bars.map((_, i) => i), [m.l, w - m.r]).padding(0.25);
+    const y = y0;
+
+    const g = svg.append('g');
+    g.selectAll('line.grid').data(ticks).join('line').attr('x1', m.l).attr('x2', w - m.r)
+      .attr('y1', (v) => y(v)).attr('y2', (v) => y(v)).style('stroke', 'var(--cds-chart-grid)');
+    g.selectAll('text.tick').data(ticks).join('text').attr('x', m.l - 6).attr('y', (v) => y(v)).attr('dy', '0.32em')
+      .attr('text-anchor', 'end').style('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)')
+      .text((v) => cbFmt.price(v));
+    // Day labels at the first bar of each day, thinned so they never touch.
+    const firsts = bars.map((b, i) => ({ i, day: cbFmt.day(b.date) })).filter((d, k, a) => k === 0 || d.day !== a[k - 1].day);
+    let lastX = -Infinity;
+    firsts.forEach((d) => {
+      const xx = x(d.i);
+      if (xx - lastX < 48) return;
+      lastX = xx;
+      g.append('text').attr('x', xx).attr('y', h - 8).style('fill', 'var(--color-fg-muted)')
+        .style('font-size', 'var(--cds-font-size-caption)').text(d.day);
+    });
+
+    const bw = x.bandwidth();
+    const up = (b) => b.close >= b.open;
+    const candle = g.selectAll('g.c').data(bars).join('g');
+    candle.append('line').attr('x1', (_, i) => x(i) + bw / 2).attr('x2', (_, i) => x(i) + bw / 2)
+      .attr('y1', (b) => y(b.high)).attr('y2', (b) => y(b.low))
+      .style('stroke', (b) => (up(b) ? 'var(--color-ok)' : 'var(--color-bad)'));
+    candle.append('rect').attr('x', (_, i) => x(i)).attr('width', Math.max(1, bw))
+      .attr('y', (b) => y(Math.max(b.open, b.close))).attr('height', (b) => Math.max(1, Math.abs(y(b.open) - y(b.close))))
+      .style('fill', (b) => (up(b) ? 'var(--color-ok)' : 'var(--color-bad)'));
+
+    // Level lines with labels at the right end, nudged apart so they never overlap.
+    const placed = [];
+    levels.slice().sort((a, b) => y(a.v) - y(b.v)).forEach((l) => {
+      g.append('line').attr('x1', m.l).attr('x2', w - m.r).attr('y1', y(l.v)).attr('y2', y(l.v))
+        .style('stroke', l.color).style('stroke-width', 1.5).style('stroke-dasharray', '5 4');
+      let ly = y(l.v);
+      placed.forEach((p) => { if (Math.abs(ly - p) < 14) ly = p + 14; });
+      placed.push(ly);
+      g.append('text').attr('x', w - m.r + 6).attr('y', ly).attr('dy', '0.32em').style('fill', l.color)
+        .style('font-size', 'var(--cds-font-size-caption)').text(`${l.key} ${cbFmt.price(l.v)}`);
+    });
+
+    // Tooltip.
+    const tip = document.createElement('div');
+    tip.className = 'cb-tip';
+    tip.hidden = true;
+    el.append(tip);
+    const hover = g.append('line').style('stroke', 'var(--cds-chart-axis)').style('display', 'none');
+    svg.on('pointermove', (ev) => {
+      const [px] = d3.pointer(ev, svg.node());
+      const scale = w / svg.node().getBoundingClientRect().width;
+      const i = d3.minIndex(bars, (_, k) => Math.abs(x(k) + bw / 2 - px));
+      const b = bars[i];
+      hover.style('display', null).attr('x1', x(i) + bw / 2).attr('x2', x(i) + bw / 2).attr('y1', 10).attr('y2', h - 28);
+      const when = document.createElement('div');
+      when.className = 'cb-tip-when';
+      when.textContent = cbFmt.when(b.ts);
+      const vals = document.createElement('div');
+      vals.textContent = `O ${cbFmt.price(b.open)}  H ${cbFmt.price(b.high)}  T ${cbFmt.price(b.low)}  S ${cbFmt.price(b.close)}`;
+      tip.replaceChildren(when, vals);
+      tip.hidden = false;
+      const left = (x(i) + bw / 2) / scale;
+      const box = el.clientWidth;
+      tip.style.left = Math.max(0, Math.min(box - tip.offsetWidth, left + 12)) + 'px';
+      tip.style.top = '8px';
+    }).on('pointerleave', () => { tip.hidden = true; hover.style('display', 'none'); });
+  });
+</script>
+
+<script>
+  // Equity over time with the fixed loss line and the goal.
+  dash.draw('equity-chart', (el) => {
+    const e = dash.data('equity'), s = dash.data('summary');
+    el.replaceChildren();
+    if (cbFailed(el, 'equity')) return;
+    if (e.status !== 'ok' || s.status !== 'ok' || !s.data.length) { el.classList.add('dash-skeleton'); return; }
+    el.classList.remove('dash-skeleton');
+    const sum = s.data[0];
+    const pts = e.data.map((r) => ({ date: new Date(r.ts), equity: r.equity, floor: r.floor }));
+    const w = el.clientWidth || 700, h = 220;
+    const vals = [...pts.map((p) => p.equity), sum.floor, sum.goal];
+    const y = d3.scaleLinear([d3.min(vals), d3.max(vals)], [h - 26, 10]).nice();
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${w} ${h}`)
+      .attr('role', 'img').attr('aria-label', 'Kontoverlauf');
+    const probe = svg.append('g').style('font-size', 'var(--cds-font-size-caption)');
+    const ticks = y.ticks(5);
+    const tickW = d3.max(ticks, (v) => probe.append('text').text(cbFmt.usd(v)).node().getComputedTextLength()) || 50;
+    const endW = probe.append('text').text(cbFmt.usd(pts[pts.length - 1].equity)).node().getComputedTextLength();
+    probe.remove();
+    const m = { l: tickW + 10, r: endW + 14 };
+    const ext = d3.extent(pts, (p) => p.date);
+    if (+ext[0] === +ext[1]) ext[1] = new Date(+ext[0] + 3600e3);
+    const x = d3.scaleUtc(ext, [m.l, w - m.r]);
+    svg.selectAll('line.grid').data(ticks).join('line').attr('x1', m.l).attr('x2', w - m.r)
+      .attr('y1', (v) => y(v)).attr('y2', (v) => y(v)).style('stroke', 'var(--cds-chart-grid)');
+    svg.selectAll('text.tick').data(ticks).join('text').attr('x', m.l - 6).attr('y', (v) => y(v)).attr('dy', '0.32em')
+      .attr('text-anchor', 'end').style('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)')
+      .text((v) => cbFmt.usd(v));
+    const ref = (v, color) => svg.append('line').attr('x1', m.l).attr('x2', w - m.r).attr('y1', y(v)).attr('y2', y(v))
+      .style('stroke', color).style('stroke-width', 1.5).style('stroke-dasharray', '5 4');
+    ref(sum.floor, 'var(--cds-chart-status-critical)');
+    ref(sum.goal, 'var(--color-ok)');
+    const line = d3.line().x((p) => x(p.date)).y((p) => y(p.equity));
+    svg.append('path').datum(pts).attr('d', line).style('fill', 'none').style('stroke', dash.colors[0])
+      .style('stroke-width', 2).style('stroke-linejoin', 'round').style('stroke-linecap', 'round');
+    const last = pts[pts.length - 1];
+    svg.append('circle').attr('cx', x(last.date)).attr('cy', y(last.equity)).attr('r', 4).style('fill', dash.colors[0]);
+    svg.append('text').attr('x', x(last.date) + 8).attr('y', y(last.equity)).attr('dy', '0.32em')
+      .style('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').text(cbFmt.usd(last.equity));
+  });
+</script>
+
+<script>
+  // Trade table: open and waiting first, then closed (newest first).
+  dash.draw('trade-rows', (tbody) => {
+    const t = dash.data('trades');
+    tbody.replaceChildren();
+    if (t.status !== 'ok') return;
+    const order = { offen: 0, Order: 1, geschlossen: 2 };
+    const rows = t.data.slice().sort((a, b) => (order[a.status] - order[b.status]) || String(b.opened).localeCompare(String(a.opened)));
+    rows.forEach((r) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = r.id;
+      const cell = (txt, cls) => { const td = document.createElement('td'); td.textContent = txt; if (cls) td.className = cls; tr.append(td); return td; };
+      cell(r.symbol);
+      const st = cell(''); const pill = document.createElement('span'); pill.className = 'cb-pill'; pill.textContent = r.status; st.append(pill);
+      cell(r.opened ? cbFmt.when(r.opened) : '–');
+      cell(r.entry != null ? cbFmt.price(r.entry) : '–', 'cb-num');
+      cell(r.stop != null ? cbFmt.price(r.stop) : '–', 'cb-num');
+      cell(r.target != null ? cbFmt.price(r.target) : '–', 'cb-num');
+      cell(r.exit != null ? cbFmt.price(r.exit) : '–', 'cb-num');
+      cell(r.pnl != null ? cbFmt.signed(r.pnl) : '–', 'cb-num' + (r.pnl > 0 ? ' cb-pos' : r.pnl < 0 ? ' cb-neg' : ''));
+      cell(r.r != null ? (r.r > 0 ? '+' : '') + r.r.toFixed(2) : '–', 'cb-num');
+      cell(r.result);
+      cell(r.reason || '', 'cb-reason cb-hide-narrow');
+      tbody.append(tr);
+    });
+  });
+</script>
