@@ -74,3 +74,45 @@ def export(state, cfg, out: Path, now_iso):
     for name, rows in files.items():
         (out / f"{name}.json").write_text(json.dumps(rows))
     return {k: len(v) for k, v in files.items()}
+
+
+def chart_symbols(state):
+    """Symbols worth a chart: open, ordered, recently traded, plus the big coins."""
+    s = ([p for p in state["positions"]] + [o["symbol"] for o in state["orders"]]
+         + [t["symbol"] for t in reversed(state["closed_trades"])] + ["BTC-USD", "SOL-USD", "ETH-USD"])
+    return list(dict.fromkeys(s))[:8]
+
+
+def live_payload(state, cfg):
+    eq = equity(state)
+    goal = target_equity(cfg) if state["status"] == "ACTIVE" else goal_equity(cfg)
+    floor = floor_equity(cfg, state["peak_equity"])
+    return {
+        "status": state["status"], "phase": PHASES.get(state["status"], state["status"]),
+        "equity": round(eq, 2), "cash": round(state["cash"], 2), "goal": round(goal, 2),
+        "floor": round(floor, 2), "headroom": round(eq - floor, 2), "room": round(risk.room(state, cfg), 2),
+        "positions": [{"symbol": s, **p} for s, p in state["positions"].items()],
+        "orders": state["orders"],
+        "trades": state["closed_trades"][-50:],
+        "events": state["events"][-40:],
+        "event_count": len(state["events"]),
+        "symbols": chart_symbols(state),
+        "last_tick": state.get("last_tick"),
+    }
+
+
+def candles_1m(symbols, keep=390):
+    out = {}
+    for sym in symbols:
+        df = yf.Ticker(sym).history(period="2d", interval="1m", prepost=False).dropna().tail(keep)
+        out[sym] = [{"time": int(ts.timestamp()), "open": round(float(b["Open"]), 6),
+                     "high": round(float(b["High"]), 6), "low": round(float(b["Low"]), 6),
+                     "close": round(float(b["Close"]), 6)} for ts, b in df.iterrows()]
+    return out
+
+
+def export_web(state, cfg, out: Path):
+    """Files for the phone page (GitHub Pages): data/state.json and data/candles.json."""
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "state.json").write_text(json.dumps(live_payload(state, cfg)))
+    (out / "candles.json").write_text(json.dumps(candles_1m(chart_symbols(state))))

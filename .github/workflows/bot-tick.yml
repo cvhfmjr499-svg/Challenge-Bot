@@ -1,0 +1,40 @@
+name: Bot alle 5 Minuten
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bot-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -q pyyaml requests pandas numpy yfinance
+      - name: Abrechnen und Handy-Daten schreiben
+        run: |
+          git config user.name "Challenge Bot (GitHub)"
+          git config user.email "bot@local"
+          # A cloud routine or the PC may push at the same moment: start again from origin and retry.
+          for attempt in 1 2 3; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            python -m bot tick
+            git add data docs/data
+            git diff --cached --quiet && exit 0
+            git commit -q -m "Bot-Lauf (GitHub, alle 5 Min)"
+            git push -q origin main && exit 0
+            sleep 5
+          done
+          exit 1

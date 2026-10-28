@@ -1,9 +1,18 @@
 """One update step: fetch bars since the last processed one and advance the account."""
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from . import engine, market
 from .config import TRADING, floor_equity
 from .state import equity
+
+
+CURVE_EVERY = timedelta(minutes=15)
+
+
+def curve_due(state, now):
+    """Frequent runners (every 1-5 min) add an equity point only every 15 minutes."""
+    last = state["equity_curve"][-1]["ts"] if state["equity_curve"] else state["created_at"]
+    return now - datetime.fromisoformat(last) >= CURVE_EVERY
 
 
 def update(state, cfg, now, record_curve=True):

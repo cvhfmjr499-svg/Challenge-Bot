@@ -149,6 +149,18 @@ def cmd_live(args, cfg):
     live.run(use_sync=not args.no_sync, port=args.port, open_browser=not args.no_browser)
 
 
+def cmd_tick(args, cfg):
+    """One step for frequent runners (GitHub Actions every 5 min): settle + export the phone page data."""
+    from .runner import curve_due
+    state = _load()
+    now = now_utc()
+    update(state, cfg, now, record_curve=curve_due(state, now))
+    state["last_tick"] = now.isoformat()
+    save_state(state)
+    export.export_web(state, cfg, Path(args.out))
+    print(f"{state['status']} Equity {equity(state):.2f} $  Positionen {len(state['positions'])}  Orders {len(state['orders'])}")
+
+
 def cmd_export(args, cfg):
     state = _load()
     counts = export.export(state, cfg, Path(args.out), now_utc().isoformat())
@@ -180,6 +192,8 @@ def main():
     p.add_argument("--port", type=int, default=8765)
     p.add_argument("--no-browser", action="store_true")
     p.set_defaults(f=cmd_live)
+    p = sub.add_parser("tick", help="Ein Abrechnungsschritt + Daten für die Handy-Seite")
+    p.add_argument("--out", default="docs/data"); p.set_defaults(f=cmd_tick)
     p = sub.add_parser("export"); p.add_argument("--out", default="data/dashboard")
     p.set_defaults(f=cmd_export)
     args = ap.parse_args()

@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Challenge-Bot Live</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0e1319">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
@@ -105,7 +107,7 @@
         <span class="k-entry"><i></i>Einstieg</span><span class="k-stop"><i></i>Stop</span><span class="k-target"><i></i>Ziel</span>
         <span>▲ Kauf &nbsp; ▼ Verkauf</span>
       </div>
-      <p class="note">Krypto tickt im Sekundentakt über Kraken. Aktien kommen als 1-Minuten-Kerzen von Yahoo Finance mit kurzer Verzögerung. Der Bot rechnet Orders, Stops und Ziele jede Minute ab.</p>
+      <p class="note">Krypto: 1-Minuten-Kerzen live von Kraken. Aktien: 1-Minuten-Kerzen von Yahoo Finance, alle 5 Minuten neu. Der Bot rechnet Orders, Stops und Ziele alle 5 Minuten minutengenau ab.</p>
     </section>
 
     <div style="display:grid;gap:14px;min-width:0">
@@ -177,20 +179,25 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   drawLevels();
 });
 
-async function loadCandles(fit) {
+// History comes from the exported Yahoo candles; for crypto, Kraken's live candles replace
+// the overlapping minutes and everything after them.
+let krakenLive = false, history = [], live = [];
+function rebuild(focus) {
+  const cut = live.length ? live[0].time : Infinity;
+  bars = [...history.filter((b) => b.time < cut), ...live];
+  series.setData(bars);
+  drawLevels();
+  if (focus && bars.length) chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, bars.length - 120), to: bars.length + 3 });
+}
+async function loadCandles(focus) {
   if (!symbol) return;
   const want = symbol;
   try {
-    const rows = await (await fetch('/api/candles?symbol=' + encodeURIComponent(want))).json();
-    if (want !== symbol || !Array.isArray(rows)) return;
-    // Keep the live-built last candle if it is newer than Yahoo's data.
-    const live = bars.length && bars[bars.length - 1];
-    bars = rows;
-    if (live && live.time > (rows.at(-1)?.time ?? 0) && isCrypto(want)) bars.push(live);
-    series.setData(bars);
-    if (bars.length) setPrice(bars.at(-1).close, isCrypto(want) ? 'Kraken live' : 'Yahoo, 1-Min');
-    drawLevels();
-    if (fit) chart.timeScale().fitContent();
+    const all = await (await fetch('data/candles.json?t=' + Date.now(), { cache: 'no-store' })).json();
+    if (want !== symbol) return;
+    history = (all[want] || []).map((b) => ({ ...b }));
+    rebuild(focus);
+    if (bars.length && !krakenLive) setPrice(bars.at(-1).close, isCrypto(want) ? 'Yahoo, bis Kraken verbindet' : 'Yahoo, 1-Min');
   } catch (e) { /* the next poll retries */ }
 }
 
@@ -224,41 +231,48 @@ function drawLevels() {
   series.setMarkers(marks.filter((m) => m.time >= first).sort((a, b) => a.time - b.time));
 }
 
-// ---- Kraken live ticks for crypto
+// ---- Kraken live 1-minute candles for crypto (snapshot of recent candles, then every trade)
 let ws = null, wsPair = null;
 function connectFeed() {
   if (ws) { try { ws.close(); } catch (e) {} ws = null; }
-  if (!symbol || !isCrypto(symbol)) { feed(false, 'Kurs: Yahoo, alle 20 s'); return; }
+  krakenLive = false; live = [];
+  if (!symbol || !isCrypto(symbol)) { feed(false, 'Aktie: Yahoo, alle 5 Min'); return; }
   wsPair = krakenPair(symbol);
   const sock = new WebSocket('wss://ws.kraken.com/v2');
   ws = sock;
-  sock.onopen = () => sock.send(JSON.stringify({ method: 'subscribe', params: { channel: 'ticker', symbol: [wsPair] } }));
+  sock.onopen = () => sock.send(JSON.stringify({ method: 'subscribe', params: { channel: 'ohlc', symbol: [wsPair], interval: 1, snapshot: true } }));
   sock.onmessage = (ev) => {
+    if (ws !== sock) return;
     const msg = JSON.parse(ev.data);
-    if (msg.channel !== 'ticker' || !msg.data) return;
-    const d = msg.data.find((x) => x.symbol === wsPair);
-    if (!d || ws !== sock) return;
-    feed(true, 'Kurs: Kraken live');
-    tick(d.last);
+    if (msg.channel !== 'ohlc' || !Array.isArray(msg.data)) return;
+    const rows = msg.data.filter((d) => d.symbol === wsPair).map((d) => ({
+      time: Math.floor(Date.parse(d.interval_begin) / 1000), open: +d.open, high: +d.high, low: +d.low, close: +d.close,
+    }));
+    if (!rows.length) return;
+    feed(true, 'Kraken live');
+    if (msg.type === 'snapshot') {
+      live = rows.sort((a, b) => a.time - b.time);
+      krakenLive = true;
+      rebuild(true);
+    } else {
+      rows.forEach((r) => {
+        const last = bars.at(-1);
+        if (last && r.time < last.time) return;
+        if (last && r.time === last.time) { bars[bars.length - 1] = r; live[live.length - 1] = r; }
+        else { bars.push(r); live.push(r); }
+        series.update(r);
+      });
+    }
+    setPrice(bars.at(-1).close, 'Kraken live');
   };
-  sock.onclose = () => { if (ws === sock) { feed(false, 'Kurs: getrennt, verbinde neu…'); setTimeout(connectFeed, 3000); } };
+  sock.onclose = () => { if (ws === sock) { krakenLive = false; feed(false, 'Kraken getrennt, verbinde neu…'); setTimeout(connectFeed, 3000); } };
   sock.onerror = () => sock.close();
-}
-function tick(price) {
-  const t = Math.floor(Date.now() / 60000) * 60;
-  const last = bars.at(-1);
-  if (last && last.time === t) { last.high = Math.max(last.high, price); last.low = Math.min(last.low, price); last.close = price; }
-  else if (!last || t > last.time) bars.push({ time: t, open: last ? last.close : price, high: price, low: price, close: price });
-  series.update(bars.at(-1));
-  setPrice(price, 'Kraken live');
 }
 function feed(ok, text) { $('feed-dot').className = 'dot ' + (ok ? 'live' : ''); $('feed').textContent = text; }
 
 // ---- state
 function symbolsFromState() {
-  const s = [...state.positions.map((p) => p.symbol), ...state.orders.map((o) => o.symbol),
-             ...state.trades.slice().reverse().map((t) => t.symbol), 'BTC-USD', 'SOL-USD', 'ETH-USD'];
-  return [...new Set(s)].slice(0, 10);
+  return state.symbols && state.symbols.length ? state.symbols : ['BTC-USD', 'SOL-USD', 'ETH-USD'];
 }
 
 function renderTabs() {
@@ -280,7 +294,7 @@ function renderTabs() {
 
 function selectSymbol(s) {
   if (s === symbol) return;
-  symbol = s; bars = [];
+  symbol = s; bars = []; history = []; live = [];
   series.setData([]);
   $('price').textContent = '–';
   renderTabs(); connectFeed(); loadCandles(true);
@@ -297,11 +311,11 @@ function renderStats() {
   $('s-goal').textContent = usd(state.goal - eq);
   $('s-head').textContent = usd(eq - state.floor);
   $('s-room').textContent = usd(state.room);
-  const r = state.runner;
-  const ok = !r.last_error && (r.sync === 'ok' || r.sync === null);
-  $('bot-dot').className = 'dot ' + (r.last_error ? 'bad' : r.last_run ? 'live' : '');
-  $('bot').textContent = r.last_error ? 'Bot: Fehler – ' + r.last_error
-    : r.last_run ? 'Bot: abgerechnet ' + hhmm(r.last_run) + (r.sync && r.sync !== 'ok' ? ' · GitHub: ' + r.sync : '') : 'Bot: startet…';
+  // The bot settles every 5 minutes (GitHub) or every minute (PC); older than 20 minutes is a warning.
+  const last = state.last_tick;
+  const stale = !last || Date.now() - Date.parse(last) > 20 * 60000;
+  $('bot-dot').className = 'dot ' + (stale ? 'bad' : 'live');
+  $('bot').textContent = last ? 'Bot abgerechnet ' + hhmm(last) + (stale ? ' (verzögert)' : '') : 'Bot: noch kein Lauf';
 }
 
 function renderOpen() {
@@ -372,18 +386,19 @@ function toast(text) {
 
 async function pollState() {
   try {
-    state = await (await fetch('/api/state')).json();
+    state = await (await fetch('data/state.json?t=' + Date.now(), { cache: 'no-store' })).json();
     const first = !symbol;
     renderTabs(); renderOpen(); renderLog(); renderHistory(); drawLevels();
     if (first) { connectFeed(); loadCandles(true); }
   } catch (e) {
-    $('bot-dot').className = 'dot bad'; $('bot').textContent = 'Bot: Programm nicht erreichbar';
+    $('bot-dot').className = 'dot bad'; $('bot').textContent = 'Daten nicht erreichbar';
   }
 }
 
 pollState();
-setInterval(pollState, 5000);
-setInterval(() => loadCandles(false), 20000);
+setInterval(pollState, 30000);
+setInterval(() => loadCandles(false), 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { pollState(); if (!ws || ws.readyState > 1) connectFeed(); } });
 </script>
 </body>
 </html>

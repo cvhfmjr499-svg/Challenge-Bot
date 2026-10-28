@@ -1,5 +1,5 @@
-"""Live view for the PC: a local web page with a ticking chart, plus a runner that settles
-orders, stops and targets every minute.
+"""Live view for the PC: serves the phone page (docs/index.html) locally, plus a runner that
+settles orders, stops and targets every minute.
 
     python -m bot live            # with GitHub sync (default)
     python -m bot live --no-sync  # local only
@@ -11,19 +11,14 @@ import traceback
 import webbrowser
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
-import yfinance as yf
+from . import export, sync
+from .config import ROOT, load_config
+from .runner import curve_due, update
+from .state import STATE_PATH, load_state, save_state
 
-from . import risk, sync
-from .config import floor_equity, goal_equity, load_config, target_equity
-from .export import PHASES
-from .runner import update
-from .state import STATE_PATH, equity, load_state, save_state
-
-STATIC = Path(__file__).parent / "static"
-CURVE_EVERY = timedelta(minutes=15)
+PAGE = ROOT / "docs" / "index.html"
 PUSH_EVERY = timedelta(minutes=60)
 
 runner_status = {"last_run": None, "last_error": None, "sync": None, "last_push": None}
@@ -37,9 +32,9 @@ def _step(cfg, use_sync):
         runner_status["sync"] = err or "ok"
     state = load_state()
     events_before = len(state["events"])
-    last_curve = state["equity_curve"][-1]["ts"] if state["equity_curve"] else state["created_at"]
-    record = now - datetime.fromisoformat(last_curve) >= CURVE_EVERY
+    record = curve_due(state, now)
     update(state, cfg, now, record_curve=record)
+    state["last_tick"] = now.isoformat()
     save_state(state)
     new_events = len(state["events"]) - events_before
     last_push = runner_status["last_push"]
@@ -63,33 +58,13 @@ def _runner(cfg, use_sync, interval):
         time.sleep(interval)
 
 
-def _state_payload(cfg):
-    state = load_state()
-    eq = equity(state)
-    goal = target_equity(cfg) if state["status"] == "ACTIVE" else goal_equity(cfg)
-    floor = floor_equity(cfg, state["peak_equity"])
-    return {
-        "status": state["status"], "phase": PHASES.get(state["status"], state["status"]),
-        "equity": round(eq, 2), "cash": round(state["cash"], 2), "goal": round(goal, 2),
-        "floor": round(floor, 2), "headroom": round(eq - floor, 2), "room": round(risk.room(state, cfg), 2),
-        "positions": [{"symbol": s, **p} for s, p in state["positions"].items()],
-        "orders": state["orders"],
-        "trades": state["closed_trades"][-50:],
-        "events": state["events"][-40:],
-        "event_count": len(state["events"]),
-        "runner": runner_status,
-    }
-
-
-def _candles(symbol):
-    hit = _candle_cache.get(symbol)
+def _candles(state):
+    hit = _candle_cache.get("all")
     if hit and time.time() - hit[0] < 20:
         return hit[1]
-    df = yf.Ticker(symbol).history(period="2d", interval="1m", prepost=False).dropna()
-    rows = [{"time": int(ts.timestamp()), "open": float(b["Open"]), "high": float(b["High"]),
-             "low": float(b["Low"]), "close": float(b["Close"])} for ts, b in df.iterrows()]
-    _candle_cache[symbol] = (time.time(), rows)
-    return rows
+    data = export.candles_1m(export.chart_symbols(state))
+    _candle_cache["all"] = (time.time(), data)
+    return data
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -107,13 +82,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         url = urlparse(self.path)
         try:
-            if url.path == "/":
-                self._send(200, (STATIC / "live.html").read_bytes(), "text/html; charset=utf-8")
-            elif url.path == "/api/state":
-                self._send(200, json.dumps(_state_payload(self.cfg)), "application/json")
-            elif url.path == "/api/candles":
-                sym = parse_qs(url.query).get("symbol", ["BTC-USD"])[0]
-                self._send(200, json.dumps(_candles(sym)), "application/json")
+            if url.path in ("/", "/index.html"):
+                self._send(200, PAGE.read_bytes(), "text/html; charset=utf-8")
+            elif url.path == "/data/state.json":
+                self._send(200, json.dumps(export.live_payload(load_state(), self.cfg)), "application/json")
+            elif url.path == "/data/candles.json":
+                self._send(200, json.dumps(_candles(load_state())), "application/json")
             else:
                 self._send(404, "nicht gefunden", "text/plain; charset=utf-8")
         except Exception as exc:
