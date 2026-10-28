@@ -37,7 +37,7 @@ def order_expiry(created: datetime, symbol="", cfg=None):
     return close
 
 
-def place_order(state, prop, decision, now: datetime, cfg=None):
+def place_order(state, prop, decision, now: datetime, cfg=None, expires_minutes=None):
     oid = state["next_id"]
     state["next_id"] += 1
     order = {
@@ -51,7 +51,9 @@ def place_order(state, prop, decision, now: datetime, cfg=None):
         "planned_risk": decision.risk_amount,
         "reason": prop.reason,
         "created_at": now.isoformat(),
-        "expires_at": order_expiry(now, prop.symbol, cfg).isoformat(),
+        "expires_at": min(order_expiry(now, prop.symbol, cfg),
+                          now + timedelta(minutes=expires_minutes) if expires_minutes
+                          else order_expiry(now, prop.symbol, cfg)).isoformat(),
         "triggered": False,
     }
     state["orders"].append(order)

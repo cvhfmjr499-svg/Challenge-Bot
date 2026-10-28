@@ -83,7 +83,7 @@ def cmd_propose(args, cfg):
                       "risk_amount": d.risk_amount, "rejections": d.rejections,
                       "notes": d.notes}, indent=2, ensure_ascii=False))
     if d.approved and not args.dry_run:
-        engine.place_order(state, prop, d, now, cfg)
+        engine.place_order(state, prop, d, now, cfg, args.expires_min)
         update(state, cfg, now)
         print("Order platziert.")
     save_state(state)
@@ -118,6 +118,14 @@ SCANS = {
 
 
 def cmd_scan(args, cfg):
+    if args.intraday:
+        from . import intraday
+        rows = intraday.scan(cfg, ("stocks", "crypto") if args.market == "all" else (args.market,), args.top)
+        print(json.dumps(rows, indent=1) if args.json else "\n".join(
+            f"{r['symbol']:13} Kurs {r['close']:<10} Einstieg {r['entry']:<10} Stop {r['stop']:<10} "
+            f"Ziel {r['target']:<10} Stop% {r['stop_pct']:<5} Abst% {r['dist_pct']:<5} "
+            f"Mom1h% {r['mom_1h_pct']:<6} RV {r['rel_vol']:<5} Score {r['score']}" for r in rows) or "(keine Kandidaten)")
+        return
     markets = list(SCANS) if args.market == "all" else [args.market]
     results = {}
     for m in markets:
@@ -181,11 +189,13 @@ def main():
     p.add_argument("--type", choices=["stop", "limit", "market"], default="stop")
     p.add_argument("--reason", default="")
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--expires-min", type=int, default=None, help="Order verfällt nach N Minuten")
     p.set_defaults(f=cmd_propose)
     p = sub.add_parser("cancel"); p.add_argument("order_id", type=int); p.set_defaults(f=cmd_cancel)
     p = sub.add_parser("close"); p.add_argument("symbol"); p.set_defaults(f=cmd_close)
     p = sub.add_parser("scan"); p.add_argument("--top", type=int, default=10)
     p.add_argument("--market", choices=["all", "stocks", "crypto"], default="all")
+    p.add_argument("--intraday", action="store_true", help="5-Min-Ausbrüche für kurze Trades")
     p.add_argument("--json", action="store_true"); p.set_defaults(f=cmd_scan)
     p = sub.add_parser("live", help="Live-Ansicht im Browser + minütliche Abrechnung")
     p.add_argument("--no-sync", action="store_true", help="ohne GitHub-Abgleich")
