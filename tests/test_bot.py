@@ -146,3 +146,15 @@ def test_order_expires_end_of_day(cfg, state):
 def test_rejects_when_challenge_over(cfg, state):
     state["status"] = "FAILED"
     assert not risk.evaluate(cfg, state, risk.Proposal("AAA", 100, 98, 106), T0.isoformat()).approved
+
+
+def test_market_order_fills_at_next_open_within_cap(cfg, state):
+    place(cfg, state, typ="market")
+    run(cfg, state, {"AAA": bars([(100.2, 100.4, 100.1, 100.3)])})
+    assert state["positions"]["AAA"]["entry_price"] == 100.2
+
+
+def test_market_order_does_not_chase(cfg, state):
+    place(cfg, state, typ="market")
+    run(cfg, state, {"AAA": bars([(101, 101.5, 100.9, 101.2)])})
+    assert not state["positions"] and state["orders"]

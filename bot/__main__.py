@@ -6,7 +6,7 @@ from datetime import datetime
 
 from . import engine, market, risk, scanner
 from .config import floor_equity, load_config, target_equity
-from .state import (STATE_PATH, equity, load_state, log_event, new_state, now_utc,
+from .state import (NY, STATE_PATH, equity, load_state, log_event, new_state, now_utc,
                     save_state)
 
 
@@ -73,7 +73,8 @@ def cmd_status(args, cfg):
     print_status(state, cfg)
     if args.events:
         for e in state["events"][-args.events:]:
-            print(f"  {e['ts'][:16]}  {e['text']}")
+            ts = datetime.fromisoformat(e["ts"]).astimezone(NY)
+            print(f"  {ts:%Y-%m-%d %H:%M} NY  {e['text']}")
 
 
 def cmd_propose(args, cfg):
@@ -82,7 +83,7 @@ def cmd_propose(args, cfg):
     update(state, cfg, now)
     entry_type, entry = args.type, args.entry
     if entry_type == "market":
-        entry_type, entry = "limit", round(market.last_price(args.symbol), 2)
+        entry = round(market.last_price(args.symbol), 2)
     prop = risk.Proposal(args.symbol.upper(), entry, args.stop, args.target, entry_type, args.reason)
     d = risk.evaluate(cfg, state, prop, now.isoformat())
     print(json.dumps({"proposal": prop.__dict__, "approved": d.approved, "qty": d.qty,

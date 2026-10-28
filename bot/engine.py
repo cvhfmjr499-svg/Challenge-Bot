@@ -6,6 +6,8 @@ Rules:
   never above entry * (1 + cap) (stop-limit). If the bar opens above the cap the
   order rests as a limit at the cap.
 - Buy-limit: fills when low <= entry at min(entry, open).
+- Market: fills at the next bar open if that is within entry * (1 + cap),
+  otherwise rests as a limit at the cap.
 - If stop and target are both touched in one bar, the stop wins.
 - The challenge fails if equity at the bar lows touches the floor; it passes when
   equity at the bar close reaches the target. Everything is closed in both cases.
@@ -73,6 +75,9 @@ def _fill_order(state, o, bar, ts, cfg):
     if o["type"] == "limit":
         if bar["Low"] <= o["entry"]:
             price = min(o["entry"], bar["Open"])
+    elif o["type"] == "market":
+        if bar["Low"] <= cap:
+            price = min(cap, bar["Open"])
     else:
         if not o["triggered"] and bar["High"] >= o["entry"]:
             o["triggered"] = True

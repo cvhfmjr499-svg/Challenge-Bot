@@ -12,7 +12,7 @@ class Proposal:
     entry: float
     stop: float
     target: float
-    entry_type: str = "stop"  # stop (breakout) | limit
+    entry_type: str = "stop"  # stop (breakout) | limit | market
     reason: str = ""
 
 
@@ -63,7 +63,7 @@ def evaluate(cfg, state, prop: Proposal, now_iso):
 
     if state["status"] != "ACTIVE":
         rej.append(f"Challenge ist beendet ({state['status']}).")
-    if prop.entry_type not in ("stop", "limit"):
+    if prop.entry_type not in ("stop", "limit", "market"):
         rej.append(f"Unbekannter Order-Typ {prop.entry_type}.")
     if not (prop.stop < prop.entry < prop.target):
         rej.append("Nur Long: Stop < Einstieg < Ziel erforderlich.")
