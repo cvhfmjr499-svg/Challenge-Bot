@@ -2,7 +2,7 @@
   "status": "ACTIVE",
   "created_at": "2026-10-28T16:03:21.025727+00:00",
   "cash": 1.2289613240000108,
-  "peak_equity": 1002.7195327297657,
+  "peak_equity": 1008.2218933918712,
   "positions": {
     "ETH-USD": {
       "qty": 0.255,
@@ -10,7 +10,7 @@
       "stop": 2326.2,
       "target": 2372.96,
       "entry_ts": "2026-10-28T17:43:00+00:00",
-      "last_price": 2341.02001953125,
+      "last_price": 2357.510009765625,
       "initial_risk": 3.22,
       "reason": "Intraday: Ausbruch ueber 30-Min-Hoch, ueber VWAP, EMA9>EMA21",
       "close_requested": false
@@ -21,7 +21,7 @@
       "stop": 401.06,
       "target": 410.5,
       "entry_ts": "2026-10-28T18:30:00+00:00",
-      "last_price": 403.0740051269531,
+      "last_price": 404.44000244140625,
       "initial_risk": 2.51,
       "reason": "Intraday: knapp unter 30-Min-Hoch, ueber VWAP, EMA9>EMA21, Volumen 3x Durchschnitt",
       "close_requested": false
@@ -32,8 +32,8 @@
   "cursor": {
     "BLK": "2026-10-28T13:41:00-04:00",
     "GOOGL": "2026-10-28T18:13:00+00:00",
-    "ETH-USD": "2026-10-28T18:32:00+00:00",
-    "TSLA": "2026-10-28T18:32:00+00:00"
+    "ETH-USD": "2026-10-28T18:37:00+00:00",
+    "TSLA": "2026-10-28T18:37:00+00:00"
   },
   "equity_curve": [
     {
@@ -170,6 +170,11 @@
       "ts": "2026-10-28T18:33:17.624286+00:00",
       "equity": 1000.05,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-28T18:38:17.879169+00:00",
+      "equity": 1005.62,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -211,5 +216,5 @@
     }
   ],
   "next_id": 5,
-  "last_tick": "2026-10-28T18:33:29.293330+00:00"
+  "last_tick": "2026-10-28T18:38:20.498001+00:00"
 }
