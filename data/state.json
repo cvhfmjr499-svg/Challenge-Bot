@@ -1,39 +1,41 @@
 {
   "status": "ACTIVE",
   "created_at": "2026-10-28T16:03:21.025727+00:00",
-  "cash": 1.2289613240000108,
-  "peak_equity": 1008.2218933918712,
+  "cash": 606.0917194040001,
+  "peak_equity": 1009.2884930551231,
   "positions": {
-    "ETH-USD": {
-      "qty": 0.255,
-      "entry_price": 2338.8252,
-      "stop": 2326.2,
-      "target": 2372.96,
-      "entry_ts": "2026-10-28T17:43:00+00:00",
-      "last_price": 2365.320068359375,
-      "initial_risk": 3.22,
-      "reason": "Intraday: Ausbruch ueber 30-Min-Hoch, ueber VWAP, EMA9>EMA21",
-      "close_requested": false
-    },
     "TSLA": {
       "qty": 0.997,
       "entry_price": 403.5814,
       "stop": 401.06,
       "target": 410.5,
       "entry_ts": "2026-10-28T18:30:00+00:00",
-      "last_price": 404.1449890136719,
+      "last_price": 404.4100036621094,
       "initial_risk": 2.51,
       "reason": "Intraday: knapp unter 30-Min-Hoch, ueber VWAP, EMA9>EMA21, Volumen 3x Durchschnitt",
       "close_requested": false
     }
   },
   "orders": [],
-  "closed_trades": [],
+  "closed_trades": [
+    {
+      "symbol": "ETH-USD",
+      "qty": 0.255,
+      "entry_price": 2338.8252,
+      "exit_price": 2372.0108,
+      "entry_ts": "2026-10-28T17:43:00+00:00",
+      "exit_ts": "2026-10-28T20:00:00+00:00",
+      "pnl": 8.46,
+      "r": 2.63,
+      "exit_reason": "Ziel",
+      "reason": "Intraday: Ausbruch ueber 30-Min-Hoch, ueber VWAP, EMA9>EMA21"
+    }
+  ],
   "cursor": {
     "BLK": "2026-10-28T13:41:00-04:00",
     "GOOGL": "2026-10-28T18:13:00+00:00",
-    "ETH-USD": "2026-10-28T19:54:00+00:00",
-    "TSLA": "2026-10-28T19:54:00+00:00"
+    "ETH-USD": "2026-10-28T20:31:00+00:00",
+    "TSLA": "2026-10-28T19:59:00+00:00"
   },
   "equity_curve": [
     {
@@ -200,6 +202,11 @@
       "ts": "2026-10-28T19:55:02.484225+00:00",
       "equity": 1007.32,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-28T20:32:03.666593+00:00",
+      "equity": 1009.29,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -238,8 +245,12 @@
     {
       "ts": "2026-10-28T18:30:00+00:00",
       "text": "FILL TSLA 0.997 @ 403.58"
+    },
+    {
+      "ts": "2026-10-28T20:00:00+00:00",
+      "text": "EXIT ETH-USD Ziel @ 2372.01  PnL +8.46 $ (+2.63 R)"
     }
   ],
   "next_id": 5,
-  "last_tick": "2026-10-28T19:55:02.484225+00:00"
+  "last_tick": "2026-10-28T20:32:03.666593+00:00"
 }
