@@ -10,7 +10,7 @@
       "stop": 2342.4666,
       "target": 2378.25,
       "entry_ts": "2026-10-29T09:08:00+00:00",
-      "last_price": 2352.300048828125,
+      "last_price": 2352.43994140625,
       "initial_risk": 5.27,
       "reason": "Aggressiv: Ausbruch ueber 2-Std-Hoch, ueber VWAP, EMA9>EMA21, Mom 1h +0,34%, Volumen normal",
       "close_requested": false
@@ -21,7 +21,7 @@
       "stop": 401.36,
       "target": 422.64,
       "entry_ts": "2026-10-29T14:39:00+00:00",
-      "last_price": 404.7655944824219,
+      "last_price": 404.94000244140625,
       "initial_risk": 5.47,
       "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch, ueber VWAP, EMA9>EMA21, Mom 1h +0,83%, Volumen 4,7x",
       "close_requested": false
@@ -57,8 +57,8 @@
   "cursor": {
     "BLK": "2026-10-28T13:41:00-04:00",
     "GOOGL": "2026-10-28T18:13:00+00:00",
-    "ETH-USD": "2026-10-29T16:50:00+00:00",
-    "TSLA": "2026-10-29T16:50:00+00:00",
+    "ETH-USD": "2026-10-29T16:55:00+00:00",
+    "TSLA": "2026-10-29T16:55:00+00:00",
     "BNB-USD": "2026-10-29T06:29:00+00:00",
     "SUI20947-USD": "2026-10-29T08:10:00+00:00"
   },
@@ -892,6 +892,11 @@
       "ts": "2026-10-29T16:51:55.202767+00:00",
       "equity": 1016.61,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-29T16:56:44.216315+00:00",
+      "equity": 1016.82,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -981,5 +986,5 @@
     }
   ],
   "next_id": 9,
-  "last_tick": "2026-10-29T16:51:57.106545+00:00"
+  "last_tick": "2026-10-29T16:56:46.065343+00:00"
 }
