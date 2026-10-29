@@ -1,22 +1,25 @@
 {
   "status": "ACTIVE",
   "created_at": "2026-10-28T16:03:21.025727+00:00",
-  "cash": 2.65673417713856,
+  "cash": 1007.7175659703387,
   "peak_equity": 1023.1781423500388,
-  "positions": {
-    "AVGO": {
-      "qty": 2.925,
-      "entry_price": 345.7883,
-      "stop": 343.92,
-      "target": 350.84,
-      "entry_ts": "2026-10-29T13:31:00-04:00",
-      "last_price": 344.2200012207031,
-      "initial_risk": 5.46,
-      "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch, ueber VWAP, EMA9>EMA21; Zahlen erst im Dezember (AAPL/UBER/SHOP/META wegen Zahlen ausgeschlossen)",
-      "close_requested": false
+  "positions": {},
+  "orders": [
+    {
+      "id": 10,
+      "symbol": "CRWD",
+      "type": "stop",
+      "entry": 260.84,
+      "stop": 257.9,
+      "target": 269.66,
+      "qty": 3.851,
+      "planned_risk": 15.63,
+      "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch, Mom 1h +1,0%, ueber VWAP, EMA9>EMA21; Zahlen erst Ende Nov/Dez",
+      "created_at": "2026-10-29T18:36:45.704514+00:00",
+      "expires_at": "2026-10-29T19:21:45.704514+00:00",
+      "triggered": false
     }
-  },
-  "orders": [],
+  ],
   "closed_trades": [
     {
       "symbol": "ETH-USD",
@@ -65,6 +68,18 @@
       "r": 1.22,
       "exit_reason": "manuell",
       "reason": "Aggressiv: Ausbruch ueber 2-Std-Hoch, ueber VWAP, EMA9>EMA21, Mom 1h +0,34%, Volumen normal"
+    },
+    {
+      "symbol": "AVGO",
+      "qty": 2.925,
+      "entry_price": 345.7883,
+      "exit_price": 343.6105,
+      "entry_ts": "2026-10-29T13:31:00-04:00",
+      "exit_ts": "2026-10-29T14:32:00-04:00",
+      "pnl": -6.37,
+      "r": -1.17,
+      "exit_reason": "Stop",
+      "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch, ueber VWAP, EMA9>EMA21; Zahlen erst im Dezember (AAPL/UBER/SHOP/META wegen Zahlen ausgeschlossen)"
     }
   ],
   "cursor": {
@@ -74,7 +89,8 @@
     "TSLA": "2026-10-29T17:19:00+00:00",
     "BNB-USD": "2026-10-29T06:29:00+00:00",
     "SUI20947-USD": "2026-10-29T08:10:00+00:00",
-    "AVGO": "2026-10-29T14:30:00-04:00"
+    "AVGO": "2026-10-29T14:35:00-04:00",
+    "CRWD": "2026-10-29T14:35:00-04:00"
   },
   "equity_curve": [
     {
@@ -1016,6 +1032,21 @@
       "ts": "2026-10-29T18:31:26.347465+00:00",
       "equity": 1009.5,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-29T18:36:13.666585+00:00",
+      "equity": 1007.72,
+      "floor": 970.0
+    },
+    {
+      "ts": "2026-10-29T18:36:45.704514+00:00",
+      "equity": 1007.72,
+      "floor": 970.0
+    },
+    {
+      "ts": "2026-10-29T18:36:45.704514+00:00",
+      "equity": 1007.72,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -1126,8 +1157,16 @@
     {
       "ts": "2026-10-29T13:31:00-04:00",
       "text": "FILL AVGO 2.925 @ 345.79"
+    },
+    {
+      "ts": "2026-10-29T14:32:00-04:00",
+      "text": "EXIT AVGO Stop @ 343.61  PnL -6.37 $ (-1.17 R)"
+    },
+    {
+      "ts": "2026-10-29T18:36:45.704514+00:00",
+      "text": "Order #10 CRWD stop 3.851 @ 260.84 Stop 257.9 Ziel 269.66"
     }
   ],
-  "next_id": 10,
-  "last_tick": "2026-10-29T18:31:28.317231+00:00"
+  "next_id": 11,
+  "last_tick": "2026-10-29T18:36:47.068430+00:00"
 }
