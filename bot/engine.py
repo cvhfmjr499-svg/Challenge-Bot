@@ -135,7 +135,9 @@ def _fill_order(state, o, bar, ts, cfg):
 
 def _manage_position(state, sym, bar, ts, cfg):
     p = state["positions"][sym]
-    if p.get("close_requested"):
+    req = p.get("close_requested")
+    # A sale only uses candles that start after the request (older states stored True).
+    if req and (req is True or datetime.fromisoformat(ts) >= datetime.fromisoformat(req)):
         _close_position(state, sym, bar["Open"], ts, "manuell", cfg)
         return
     stop_slip = cfg["execution"]["stop_exit_slippage_pct"] / 100

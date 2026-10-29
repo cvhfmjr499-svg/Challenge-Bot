@@ -105,10 +105,11 @@ def cmd_close(args, cfg):
     sym = normalize(args.symbol)
     if sym not in state["positions"]:
         sys.exit(f"Keine Position {sym}.")
-    state["positions"][sym]["close_requested"] = True
-    log_event(state, now_utc().isoformat(), f"{sym}: Schließen zur nächsten Kerze angefordert.")
+    now = now_utc().isoformat()
+    state["positions"][sym]["close_requested"] = now   # sells at the first candle starting after this
+    log_event(state, now, f"{sym}: Schließen zur nächsten Kerze angefordert.")
     save_state(state)
-    print(f"{sym} wird zum Eröffnungskurs der nächsten 5-Min-Kerze geschlossen.")
+    print(f"{sym} wird zum Eröffnungskurs der nächsten 1-Min-Kerze geschlossen.")
 
 
 SCANS = {

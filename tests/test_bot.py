@@ -262,3 +262,14 @@ def test_close_above_target_keeps_running_and_locks_target(cfg, state):
     run(cfg, state, {"AAA": bars([(106.4, 106.4, 105.5, 105.7)], start=T0 + timedelta(minutes=10))})
     t = state["closed_trades"][0]
     assert t["exit_reason"] == "Stop" and t["exit_price"] > 105.9
+
+
+def test_manual_close_uses_only_candles_after_request(cfg, state):
+    place(cfg, state, typ="market")
+    run(cfg, state, {"AAA": bars([(100, 100.5, 99.9, 100.2)])})
+    state["positions"]["AAA"]["close_requested"] = (T0 + timedelta(minutes=7)).isoformat()
+    run(cfg, state, {"AAA": bars([(100.2, 100.4, 100.1, 100.3), (100.3, 100.6, 100.2, 100.5)],
+                                 start=T0 + timedelta(minutes=5))})
+    t = state["closed_trades"][0]
+    assert t["exit_reason"] == "manuell" and t["exit_ts"] == (T0 + timedelta(minutes=10)).isoformat()
+    assert t["exit_price"] == 100.3
