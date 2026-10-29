@@ -4,22 +4,7 @@
   "cash": 1007.7175659703387,
   "peak_equity": 1023.1781423500388,
   "positions": {},
-  "orders": [
-    {
-      "id": 10,
-      "symbol": "CRWD",
-      "type": "stop",
-      "entry": 260.84,
-      "stop": 257.9,
-      "target": 269.66,
-      "qty": 3.851,
-      "planned_risk": 15.63,
-      "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch, Mom 1h +1,0%, ueber VWAP, EMA9>EMA21; Zahlen erst Ende Nov/Dez",
-      "created_at": "2026-10-29T18:36:45.704514+00:00",
-      "expires_at": "2026-10-29T19:21:45.704514+00:00",
-      "triggered": false
-    }
-  ],
+  "orders": [],
   "closed_trades": [
     {
       "symbol": "ETH-USD",
@@ -90,7 +75,7 @@
     "BNB-USD": "2026-10-29T06:29:00+00:00",
     "SUI20947-USD": "2026-10-29T08:10:00+00:00",
     "AVGO": "2026-10-29T14:35:00-04:00",
-    "CRWD": "2026-10-29T15:19:00-04:00"
+    "CRWD": "2026-10-29T15:24:00-04:00"
   },
   "equity_curve": [
     {
@@ -1092,6 +1077,11 @@
       "ts": "2026-10-29T19:20:32.866249+00:00",
       "equity": 1007.72,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-29T19:25:20.605202+00:00",
+      "equity": 1007.72,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -1210,8 +1200,12 @@
     {
       "ts": "2026-10-29T18:36:45.704514+00:00",
       "text": "Order #10 CRWD stop 3.851 @ 260.84 Stop 257.9 Ziel 269.66"
+    },
+    {
+      "ts": "2026-10-29T19:25:20.605202+00:00",
+      "text": "Order #10 CRWD abgelaufen."
     }
   ],
   "next_id": 11,
-  "last_tick": "2026-10-29T19:20:34.622672+00:00"
+  "last_tick": "2026-10-29T19:25:47.174143+00:00"
 }
