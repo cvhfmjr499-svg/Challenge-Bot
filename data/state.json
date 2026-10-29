@@ -24,7 +24,7 @@
       "last_price": 404.09979248046875,
       "initial_risk": 5.47,
       "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch, ueber VWAP, EMA9>EMA21, Mom 1h +0,83%, Volumen 4,7x",
-      "close_requested": false
+      "close_requested": true
     }
   },
   "orders": [],
@@ -1003,6 +1003,10 @@
     {
       "ts": "2026-10-29T16:26:19.760326+00:00",
       "text": "Stop ETH-USD nachgezogen 2300.85 -> 2342.4666"
+    },
+    {
+      "ts": "2026-10-29T17:18:52.188954+00:00",
+      "text": "TSLA: Schlie\u00dfen zur n\u00e4chsten Kerze angefordert."
     }
   ],
   "next_id": 9,
