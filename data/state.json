@@ -13,7 +13,7 @@
       "last_price": 2347.56005859375,
       "initial_risk": 5.27,
       "reason": "Aggressiv: Ausbruch ueber 2-Std-Hoch, ueber VWAP, EMA9>EMA21, Mom 1h +0,34%, Volumen normal",
-      "close_requested": false
+      "close_requested": true
     }
   },
   "orders": [],
@@ -1012,6 +1012,10 @@
     {
       "ts": "2026-10-29T17:17:00+00:00",
       "text": "EXIT TSLA manuell @ 403.90  PnL -2.94 $ (-0.54 R)"
+    },
+    {
+      "ts": "2026-10-29T17:20:40.095035+00:00",
+      "text": "ETH-USD: Schlie\u00dfen zur n\u00e4chsten Kerze angefordert."
     }
   ],
   "next_id": 9,
