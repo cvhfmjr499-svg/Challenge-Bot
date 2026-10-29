@@ -2,7 +2,7 @@
   "status": "ACTIVE",
   "created_at": "2026-10-28T16:03:21.025727+00:00",
   "cash": 407.0888515402184,
-  "peak_equity": 1011.7734413839685,
+  "peak_equity": 1015.3978261495934,
   "positions": {
     "ETH-USD": {
       "qty": 0.26,
@@ -10,13 +10,28 @@
       "stop": 2300.85,
       "target": 2378.25,
       "entry_ts": "2026-10-29T09:08:00+00:00",
-      "last_price": 2321.550048828125,
+      "last_price": 2339.35009765625,
       "initial_risk": 5.27,
       "reason": "Aggressiv: Ausbruch ueber 2-Std-Hoch, ueber VWAP, EMA9>EMA21, Mom 1h +0,34%, Volumen normal",
       "close_requested": false
     }
   },
-  "orders": [],
+  "orders": [
+    {
+      "id": 8,
+      "symbol": "TSLA",
+      "type": "stop",
+      "entry": 406.68,
+      "stop": 401.36,
+      "target": 422.64,
+      "qty": 0.998,
+      "planned_risk": 7.05,
+      "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch, ueber VWAP, EMA9>EMA21, Mom 1h +0,83%, Volumen 4,7x",
+      "created_at": "2026-10-29T14:36:10.825368+00:00",
+      "expires_at": "2026-10-29T15:36:10.825368+00:00",
+      "triggered": false
+    }
+  ],
   "closed_trades": [
     {
       "symbol": "ETH-USD",
@@ -46,8 +61,8 @@
   "cursor": {
     "BLK": "2026-10-28T13:41:00-04:00",
     "GOOGL": "2026-10-28T18:13:00+00:00",
-    "ETH-USD": "2026-10-29T13:51:00+00:00",
-    "TSLA": "2026-10-29T13:51:00+00:00",
+    "ETH-USD": "2026-10-29T14:35:00+00:00",
+    "TSLA": "2026-10-29T14:34:00+00:00",
     "BNB-USD": "2026-10-29T06:29:00+00:00",
     "SUI20947-USD": "2026-10-29T08:10:00+00:00"
   },
@@ -726,6 +741,21 @@
       "ts": "2026-10-29T13:52:30.853850+00:00",
       "equity": 1010.69,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-29T14:35:50.884099+00:00",
+      "equity": 1015.4,
+      "floor": 970.0
+    },
+    {
+      "ts": "2026-10-29T14:36:10.825368+00:00",
+      "equity": 1015.32,
+      "floor": 970.0
+    },
+    {
+      "ts": "2026-10-29T14:36:10.825368+00:00",
+      "equity": 1015.32,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -800,8 +830,12 @@
     {
       "ts": "2026-10-29T13:30:00+00:00",
       "text": "EXIT TSLA manuell @ 405.71  PnL +2.12 $ (+0.84 R)"
+    },
+    {
+      "ts": "2026-10-29T14:36:10.825368+00:00",
+      "text": "Order #8 TSLA stop 0.998 @ 406.68 Stop 401.36 Ziel 422.64"
     }
   ],
-  "next_id": 8,
-  "last_tick": "2026-10-29T13:52:30.853850+00:00"
+  "next_id": 9,
+  "last_tick": "2026-10-29T14:36:12.555098+00:00"
 }
