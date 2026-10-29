@@ -1,27 +1,16 @@
 {
   "status": "ACTIVE",
   "created_at": "2026-10-28T16:03:21.025727+00:00",
-  "cash": 2.5984186040001305,
-  "peak_equity": 1010.8282049504357,
+  "cash": 407.0888515402184,
+  "peak_equity": 1011.7734413839685,
   "positions": {
-    "TSLA": {
-      "qty": 0.997,
-      "entry_price": 403.5814,
-      "stop": 401.06,
-      "target": 410.5,
-      "entry_ts": "2026-10-28T18:30:00+00:00",
-      "last_price": 404.4100036621094,
-      "initial_risk": 2.51,
-      "reason": "Intraday: knapp unter 30-Min-Hoch, ueber VWAP, EMA9>EMA21, Volumen 3x Durchschnitt",
-      "close_requested": true
-    },
     "ETH-USD": {
       "qty": 0.26,
       "entry_price": 2321.1281,
       "stop": 2300.85,
       "target": 2378.25,
       "entry_ts": "2026-10-29T09:08:00+00:00",
-      "last_price": 2318.77001953125,
+      "last_price": 2321.550048828125,
       "initial_risk": 5.27,
       "reason": "Aggressiv: Ausbruch ueber 2-Std-Hoch, ueber VWAP, EMA9>EMA21, Mom 1h +0,34%, Volumen normal",
       "close_requested": false
@@ -40,13 +29,25 @@
       "r": 2.63,
       "exit_reason": "Ziel",
       "reason": "Intraday: Ausbruch ueber 30-Min-Hoch, ueber VWAP, EMA9>EMA21"
+    },
+    {
+      "symbol": "TSLA",
+      "qty": 0.997,
+      "entry_price": 403.5814,
+      "exit_price": 405.7076,
+      "entry_ts": "2026-10-28T18:30:00+00:00",
+      "exit_ts": "2026-10-29T13:30:00+00:00",
+      "pnl": 2.12,
+      "r": 0.84,
+      "exit_reason": "manuell",
+      "reason": "Intraday: knapp unter 30-Min-Hoch, ueber VWAP, EMA9>EMA21, Volumen 3x Durchschnitt"
     }
   ],
   "cursor": {
     "BLK": "2026-10-28T13:41:00-04:00",
     "GOOGL": "2026-10-28T18:13:00+00:00",
-    "ETH-USD": "2026-10-29T12:54:00+00:00",
-    "TSLA": "2026-10-28T19:59:00+00:00",
+    "ETH-USD": "2026-10-29T13:51:00+00:00",
+    "TSLA": "2026-10-29T13:51:00+00:00",
     "BNB-USD": "2026-10-29T06:29:00+00:00",
     "SUI20947-USD": "2026-10-29T08:10:00+00:00"
   },
@@ -720,6 +721,11 @@
       "ts": "2026-10-29T12:50:31.306990+00:00",
       "equity": 1008.76,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-29T13:52:30.853850+00:00",
+      "equity": 1010.69,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -790,8 +796,12 @@
     {
       "ts": "2026-10-29T09:08:00+00:00",
       "text": "FILL ETH-USD 0.26 @ 2321.13"
+    },
+    {
+      "ts": "2026-10-29T13:30:00+00:00",
+      "text": "EXIT TSLA manuell @ 405.71  PnL +2.12 $ (+0.84 R)"
     }
   ],
   "next_id": 8,
-  "last_tick": "2026-10-29T12:55:27.903288+00:00"
+  "last_tick": "2026-10-29T13:52:30.853850+00:00"
 }
