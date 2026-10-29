@@ -13,7 +13,7 @@
       "last_price": 404.4100036621094,
       "initial_risk": 2.51,
       "reason": "Intraday: knapp unter 30-Min-Hoch, ueber VWAP, EMA9>EMA21, Volumen 3x Durchschnitt",
-      "close_requested": false
+      "close_requested": true
     }
   },
   "orders": [
@@ -349,8 +349,12 @@
     {
       "ts": "2026-10-29T06:30:03.948395+00:00",
       "text": "Order #5 BNB-USD stop 0.16 @ 760.5 Stop 716.6 Ziel 892.2"
+    },
+    {
+      "ts": "2026-10-29T06:30:30.283963+00:00",
+      "text": "TSLA: Schlie\u00dfen zur n\u00e4chsten Kerze angefordert."
     }
   ],
   "next_id": 6,
-  "last_tick": "2026-10-29T06:30:05.465695+00:00"
+  "last_tick": "2026-10-29T06:30:30.795885+00:00"
 }
