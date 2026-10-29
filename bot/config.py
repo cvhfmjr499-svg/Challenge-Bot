@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -37,11 +38,21 @@ def floor_equity(cfg, peak):
 TRADING = ("ACTIVE", "FUNDED")  # ACTIVE = challenge running, FUNDED = passed, trading on
 
 
-def risk_params(cfg, state):
-    """Risk settings for the current phase."""
+def aggressive_active(cfg, now=None):
+    agg = cfg.get("aggressive") or {}
+    if not agg.get("enabled"):
+        return False
+    now = now or datetime.now(timezone.utc)
+    return now < datetime.fromisoformat(agg["until"])
+
+
+def risk_params(cfg, state, now=None):
+    """Risk settings for the current phase, plus a time-limited aggressive overlay."""
     params = dict(cfg["risk"])
     if state["status"] == "FUNDED":
         params.update(cfg.get("funded", {}).get("risk", {}))
+    if aggressive_active(cfg, now):
+        params.update(cfg["aggressive"].get("risk", {}))
     return params
 
 

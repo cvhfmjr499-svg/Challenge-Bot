@@ -14,6 +14,7 @@ T0 = datetime(2026, 10, 27, 9, 30, tzinfo=NY)  # Tuesday
 def cfg():
     c = load_config()
     c["execution"]["spread_pct"] = 0  # most tests check fill logic; spread has its own test
+    c.setdefault("aggressive", {})["enabled"] = False
     return c
 
 
@@ -227,3 +228,13 @@ def test_one_minute_bars_are_processed(cfg, state):
     engine.process_bars(state, cfg, {"AAA": df}, T0 + timedelta(minutes=3))
     assert state["closed_trades"][0]["exit_reason"] == "Stop"
     assert state["closed_trades"][0]["exit_ts"] == idx[2].isoformat()
+
+
+def test_aggressive_overlay_is_time_limited(cfg, state):
+    cfg["aggressive"] = {"enabled": True, "until": (T0 + timedelta(days=1)).isoformat(),
+                         "risk": {"risk_per_trade_pct": 1.8, "max_position_pct": 100}}
+    prop = risk.Proposal("AAA", 100, 98, 106)
+    during = risk.evaluate(cfg, state, prop, T0.isoformat())
+    after = risk.evaluate(cfg, state, prop, (T0 + timedelta(days=2)).isoformat())
+    assert during.approved and during.risk_amount > 7.5
+    assert after.approved and after.risk_amount <= 7.5

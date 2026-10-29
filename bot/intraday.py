@@ -13,7 +13,7 @@ RANGE_BARS = 6        # 30 minutes
 MAX_STOP_PCT = 2.0    # wider than this is not an intraday trade
 
 
-def _setup(sym, df, cfg, now):
+def _setup(sym, df, cfg, now, range_bars=RANGE_BARS):
     df = df[df.index + timedelta(minutes=5) <= now]          # completed bars only
     if len(df) < 30:
         return None
@@ -31,10 +31,10 @@ def _setup(sym, df, cfg, now):
     close = c.iloc[-1]
     if not (close > vwap and ema9 > ema21):
         return None
-    rng = df.tail(RANGE_BARS)
+    rng = df.tail(range_bars)
     entry = _px(rng["High"].max() * 1.0005)
     dist = (entry / close - 1) * 100
-    if not (0 <= dist <= 0.6):
+    if not (0 <= dist <= 0.6 * max(1, range_bars / RANGE_BARS) ** 0.5):
         return None
     r = cfg["risk"]
     stop = _px(rng["Low"].min() * 0.9995)
@@ -52,7 +52,7 @@ def _setup(sym, df, cfg, now):
             "score": round(mom + min(rv, 3) - stop_pct - dist, 2)}
 
 
-def scan(cfg, markets=("stocks", "crypto"), top=8):
+def scan(cfg, markets=("stocks", "crypto"), top=8, range_bars=RANGE_BARS):
     now = datetime.now(timezone.utc)
     syms = (STOCKS if "stocks" in markets else []) + (CRYPTO if "crypto" in markets else [])
     rows = []
@@ -60,7 +60,7 @@ def scan(cfg, markets=("stocks", "crypto"), top=8):
         df = yf.Ticker(sym).history(period="5d", interval="5m", prepost=False).dropna()
         if df.empty:
             continue
-        row = _setup(sym, df, cfg, now)
+        row = _setup(sym, df, cfg, now, range_bars)
         if row:
             rows.append(row)
     rows.sort(key=lambda x: x["score"], reverse=True)

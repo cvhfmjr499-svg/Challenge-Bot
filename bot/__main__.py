@@ -120,7 +120,8 @@ SCANS = {
 def cmd_scan(args, cfg):
     if args.intraday:
         from . import intraday
-        rows = intraday.scan(cfg, ("stocks", "crypto") if args.market == "all" else (args.market,), args.top)
+        rows = intraday.scan(cfg, ("stocks", "crypto") if args.market == "all" else (args.market,), args.top,
+                             args.range_bars)
         print(json.dumps(rows, indent=1) if args.json else "\n".join(
             f"{r['symbol']:13} Kurs {r['close']:<10} Einstieg {r['entry']:<10} Stop {r['stop']:<10} "
             f"Ziel {r['target']:<10} Stop% {r['stop_pct']:<5} Abst% {r['dist_pct']:<5} "
@@ -196,6 +197,7 @@ def main():
     p = sub.add_parser("scan"); p.add_argument("--top", type=int, default=10)
     p.add_argument("--market", choices=["all", "stocks", "crypto"], default="all")
     p.add_argument("--intraday", action="store_true", help="5-Min-Ausbrüche für kurze Trades")
+    p.add_argument("--range-bars", type=int, default=6, help="Intraday: Spanne in 5-Min-Kerzen (6 = 30 Min)")
     p.add_argument("--json", action="store_true"); p.set_defaults(f=cmd_scan)
     p = sub.add_parser("live", help="Live-Ansicht im Browser + minütliche Abrechnung")
     p.add_argument("--no-sync", action="store_true", help="ohne GitHub-Abgleich")

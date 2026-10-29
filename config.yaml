@@ -42,3 +42,14 @@ funded:
     min_reward_risk: 2.0
     max_open_positions: 3
     daily_loss_limit_pct: 3
+
+# Aggressiv-Modus: vom Nutzer am 29.10. gewählt, um das Ziel bis Freitag zu versuchen.
+# Nur für das Paper-Konto. Endet automatisch zum Zeitpunkt `until`; danach gelten wieder `risk`.
+# Kein Hebel (Kraken Funded): mehr Risiko heißt größere Position und weiterer Stop.
+aggressive:
+  enabled: true
+  until: "2026-10-30T22:00:00+01:00"
+  risk:
+    risk_per_trade_pct: 1.8      # ca. 18 $ pro Trade, zwei Verluste ≈ Grenze
+    max_position_pct: 100        # ganzes Konto in einer Position erlaubt
+    daily_loss_limit_pct: 4      # die 970-$-Grenze ist die eigentliche Bremse

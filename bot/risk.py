@@ -1,4 +1,5 @@
 """Risk guard: hard-coded challenge rules. Claude proposes, this code decides."""
+from datetime import datetime
 import math
 from dataclasses import dataclass, field
 
@@ -65,7 +66,7 @@ def per_share_risk(cfg, entry, stop):
 
 
 def evaluate(cfg, state, prop: Proposal, now_iso):
-    r = risk_params(cfg, state)
+    r = risk_params(cfg, state, datetime.fromisoformat(now_iso))
     slip = cfg["execution"]["entry_slippage_cap_pct"] / 100
     rej, notes = [], []
     today = ny_date(now_iso)
