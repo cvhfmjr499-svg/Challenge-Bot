@@ -1,7 +1,7 @@
 {
   "status": "ACTIVE",
   "created_at": "2026-10-28T16:03:21.025727+00:00",
-  "cash": 606.0917194040001,
+  "cash": 2.5984186040001305,
   "peak_equity": 1009.2884930551231,
   "positions": {
     "TSLA": {
@@ -14,24 +14,20 @@
       "initial_risk": 2.51,
       "reason": "Intraday: knapp unter 30-Min-Hoch, ueber VWAP, EMA9>EMA21, Volumen 3x Durchschnitt",
       "close_requested": true
-    }
-  },
-  "orders": [
-    {
-      "id": 7,
-      "symbol": "ETH-USD",
-      "type": "stop",
-      "entry": 2320.2,
+    },
+    "ETH-USD": {
+      "qty": 0.26,
+      "entry_price": 2321.1281,
       "stop": 2300.85,
       "target": 2378.25,
-      "qty": 0.26,
-      "planned_risk": 7.62,
+      "entry_ts": "2026-10-29T09:08:00+00:00",
+      "last_price": 2320.280029296875,
+      "initial_risk": 5.27,
       "reason": "Aggressiv: Ausbruch ueber 2-Std-Hoch, ueber VWAP, EMA9>EMA21, Mom 1h +0,34%, Volumen normal",
-      "created_at": "2026-10-29T08:21:15.104323+00:00",
-      "expires_at": "2026-10-29T09:51:15.104323+00:00",
-      "triggered": false
+      "close_requested": false
     }
-  ],
+  },
+  "orders": [],
   "closed_trades": [
     {
       "symbol": "ETH-USD",
@@ -49,7 +45,7 @@
   "cursor": {
     "BLK": "2026-10-28T13:41:00-04:00",
     "GOOGL": "2026-10-28T18:13:00+00:00",
-    "ETH-USD": "2026-10-29T09:03:00+00:00",
+    "ETH-USD": "2026-10-29T09:08:00+00:00",
     "TSLA": "2026-10-28T19:59:00+00:00",
     "BNB-USD": "2026-10-29T06:29:00+00:00",
     "SUI20947-USD": "2026-10-29T08:10:00+00:00"
@@ -484,6 +480,11 @@
       "ts": "2026-10-29T09:04:23.869150+00:00",
       "equity": 1009.29,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-29T09:09:11.118645+00:00",
+      "equity": 1009.07,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -550,8 +551,12 @@
     {
       "ts": "2026-10-29T08:21:15.104323+00:00",
       "text": "Order #7 ETH-USD stop 0.26 @ 2320.2 Stop 2300.85 Ziel 2378.25"
+    },
+    {
+      "ts": "2026-10-29T09:08:00+00:00",
+      "text": "FILL ETH-USD 0.26 @ 2321.13"
     }
   ],
   "next_id": 8,
-  "last_tick": "2026-10-29T09:04:25.728226+00:00"
+  "last_tick": "2026-10-29T09:09:25.500834+00:00"
 }
