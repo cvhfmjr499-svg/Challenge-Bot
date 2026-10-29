@@ -10,7 +10,7 @@
       "stop": 343.92,
       "target": 350.84,
       "entry_ts": "2026-10-29T13:31:00-04:00",
-      "last_price": 344.9200134277344,
+      "last_price": 344.5299987792969,
       "initial_risk": 5.46,
       "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch, ueber VWAP, EMA9>EMA21; Zahlen erst im Dezember (AAPL/UBER/SHOP/META wegen Zahlen ausgeschlossen)",
       "close_requested": false
@@ -74,7 +74,7 @@
     "TSLA": "2026-10-29T17:19:00+00:00",
     "BNB-USD": "2026-10-29T06:29:00+00:00",
     "SUI20947-USD": "2026-10-29T08:10:00+00:00",
-    "AVGO": "2026-10-29T14:20:00-04:00"
+    "AVGO": "2026-10-29T14:25:00-04:00"
   },
   "equity_curve": [
     {
@@ -1006,6 +1006,11 @@
       "ts": "2026-10-29T18:21:46.191870+00:00",
       "equity": 1011.55,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-29T18:26:37.673939+00:00",
+      "equity": 1010.41,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -1119,5 +1124,5 @@
     }
   ],
   "next_id": 10,
-  "last_tick": "2026-10-29T18:21:48.067101+00:00"
+  "last_tick": "2026-10-29T18:26:39.729379+00:00"
 }
