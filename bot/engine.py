@@ -62,6 +62,26 @@ def place_order(state, prop, decision, now: datetime, cfg=None, expires_minutes=
     return order
 
 
+def stop_for_profit(cfg, position, profit):
+    """Stop price at which closing (after stop slippage and spread) still earns `profit`."""
+    ex = cfg["execution"]
+    net = (1 - ex["stop_exit_slippage_pct"] / 100) * (1 - ex.get("spread_pct", 0) / 100)
+    return (position["entry_price"] + profit / position["qty"]) / net
+
+
+def move_stop(state, sym, new_stop, ts):
+    """Raise a position's stop. Lowering it or setting it at or above the price is refused."""
+    p = state["positions"].get(sym)
+    if p is None:
+        raise ValueError(f"Keine Position {sym}.")
+    if new_stop <= p["stop"]:
+        raise ValueError(f"Stop darf nur steigen (jetzt {p['stop']}, neu {new_stop:.4f}).")
+    if new_stop >= p["last_price"]:
+        raise ValueError(f"Stop {new_stop:.4f} liegt nicht unter dem Kurs {p['last_price']:.4f}.")
+    log_event(state, ts, f"Stop {sym} nachgezogen {p['stop']} -> {round(new_stop, 4)}")
+    p["stop"] = round(new_stop, 4)
+
+
 def _close_position(state, sym, price, ts, why, cfg):
     price *= 1 - cfg["execution"].get("spread_pct", 0) / 100
     p = state["positions"].pop(sym)

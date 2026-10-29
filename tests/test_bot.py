@@ -238,3 +238,16 @@ def test_aggressive_overlay_is_time_limited(cfg, state):
     after = risk.evaluate(cfg, state, prop, (T0 + timedelta(days=2)).isoformat())
     assert during.approved and during.risk_amount > 7.5
     assert after.approved and after.risk_amount <= 7.5
+
+
+def test_move_stop_only_up_and_below_price(cfg, state):
+    place(cfg, state, typ="market")
+    run(cfg, state, {"AAA": bars([(100, 101, 100, 101)])})
+    with pytest.raises(ValueError):
+        engine.move_stop(state, "AAA", 97, T0.isoformat())
+    with pytest.raises(ValueError):
+        engine.move_stop(state, "AAA", 101.5, T0.isoformat())
+    p = state["positions"]["AAA"]
+    engine.move_stop(state, "AAA", engine.stop_for_profit(cfg, p, 1.0), T0.isoformat())
+    run(cfg, state, {"AAA": bars([(101, 101, 99, 99.5)], start=T0 + timedelta(minutes=5))})
+    assert state["closed_trades"][0]["pnl"] >= 0.99

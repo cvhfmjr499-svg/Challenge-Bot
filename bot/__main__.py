@@ -117,6 +117,24 @@ SCANS = {
 }
 
 
+def cmd_move_stop(args, cfg):
+    state = _load()
+    now = now_utc()
+    update(state, cfg, now)
+    sym = normalize(args.symbol)
+    if sym not in state["positions"]:
+        save_state(state)
+        sys.exit(f"Keine Position {sym}.")
+    new = args.price if args.price else engine.stop_for_profit(cfg, state["positions"][sym], args.lock)
+    try:
+        engine.move_stop(state, sym, new, now.isoformat())
+    except ValueError as exc:
+        save_state(state)
+        sys.exit(str(exc))
+    save_state(state)
+    print(f"{sym}: Stop jetzt {state['positions'][sym]['stop']}")
+
+
 def cmd_scan(args, cfg):
     if args.intraday:
         from . import intraday
@@ -194,6 +212,12 @@ def main():
     p.set_defaults(f=cmd_propose)
     p = sub.add_parser("cancel"); p.add_argument("order_id", type=int); p.set_defaults(f=cmd_cancel)
     p = sub.add_parser("close"); p.add_argument("symbol"); p.set_defaults(f=cmd_close)
+    p = sub.add_parser("move-stop", help="Stop einer Position nachziehen (nur nach oben)")
+    p.add_argument("symbol")
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument("--price", type=float, help="neuer Stop-Kurs")
+    g.add_argument("--lock", type=float, help="so hoch, dass mindestens dieser Gewinn in $ bleibt")
+    p.set_defaults(f=cmd_move_stop)
     p = sub.add_parser("scan"); p.add_argument("--top", type=int, default=10)
     p.add_argument("--market", choices=["all", "stocks", "crypto"], default="all")
     p.add_argument("--intraday", action="store_true", help="5-Min-Ausbrüche für kurze Trades")
