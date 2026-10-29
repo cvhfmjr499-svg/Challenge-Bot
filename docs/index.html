@@ -62,6 +62,9 @@
   .pos-sub { color: var(--muted); font-size: 12px; font-family: var(--font-num); }
   .pnl-up { color: var(--up); } .pnl-down { color: var(--down); }
   .empty { color: var(--muted); font-size: 13px; }
+  .act { justify-self: start; display: inline-block; margin-top: 4px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--down); color: var(--down); font: 500 13px var(--font-ui); text-decoration: none; }
+  .act:hover, .act:focus-visible { background: color-mix(in srgb, var(--down) 12%, transparent); }
+  .act-note { font-size: 12px; color: var(--warn); }
   .log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 330px; overflow: auto; font-size: 12px; }
   .log li { display: grid; grid-template-columns: 44px 1fr; gap: 8px; }
   .log time { color: var(--muted); font-family: var(--font-num); }
@@ -318,6 +321,19 @@ function renderStats() {
   $('bot').textContent = last ? 'Bot abgerechnet ' + hhmm(last) + (stale ? ' (verzögert)' : '') : 'Bot: noch kein Lauf';
 }
 
+// Sell / cancel: opens a prefilled GitHub issue. A workflow runs it, but only for the repo owner.
+const REPO = 'cvhfmjr499-svg/Challenge-Bot';
+function actionLink(label, title) {
+  const a = document.createElement('a');
+  a.className = 'act';
+  a.textContent = label;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.href = `https://github.com/${REPO}/issues/new?title=${encodeURIComponent(title)}` +
+    `&body=${encodeURIComponent('Auf "Submit new issue" tippen. Der Bot führt das in 1-2 Minuten aus und antwortet hier.')}`;
+  return a;
+}
+
 function renderOpen() {
   if (!state) return;
   const box = $('open');
@@ -332,7 +348,14 @@ function renderOpen() {
     top.append(a, b);
     const sub = document.createElement('div'); sub.className = 'pos-sub';
     sub.textContent = `${p.qty} @ ${px(p.entry_price)} · jetzt ${px(now)} · Stop ${px(p.stop)} · Ziel ${px(p.target)}`;
-    el.append(top, sub); items.push(el);
+    el.append(top, sub);
+    if (p.close_requested) {
+      const n = document.createElement('span'); n.className = 'act-note'; n.textContent = 'Verkauf angefordert, wird zur nächsten Minute ausgeführt';
+      el.append(n);
+    } else {
+      el.append(actionLink('Verkaufen', `VERKAUFEN ${p.symbol}`));
+    }
+    items.push(el);
   });
   state.orders.forEach((o) => {
     const el = document.createElement('div'); el.className = 'pos';
@@ -342,7 +365,8 @@ function renderOpen() {
     top.append(a, b);
     const sub = document.createElement('div'); sub.className = 'pos-sub';
     sub.textContent = `${o.qty} @ ${px(o.entry)} · Stop ${px(o.stop)} · Ziel ${px(o.target)} · Risiko ${usd(o.planned_risk)}`;
-    el.append(top, sub); items.push(el);
+    el.append(top, sub, actionLink('Stornieren', `STORNIEREN ${o.id} ${o.symbol}`));
+    items.push(el);
   });
   if (!items.length) { const e = document.createElement('p'); e.className = 'empty'; e.textContent = 'Keine offene Position und keine wartende Order.'; items.push(e); }
   box.replaceChildren(...items);

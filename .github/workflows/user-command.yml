@@ -1,0 +1,71 @@
+name: Befehl vom Handy
+
+# The phone page's "Verkaufen" / "Stornieren" buttons open an issue with a fixed title.
+# Only issues opened by the repository owner are executed; everything else is ignored.
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: bot-tick
+  cancel-in-progress: false
+
+jobs:
+  command:
+    if: github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      TITLE: ${{ github.event.issue.title }}
+      ISSUE: ${{ github.event.issue.number }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -q pyyaml requests pandas numpy yfinance
+      - name: Befehl ausführen
+        run: |
+          git config user.name "Challenge Bot (GitHub)"
+          git config user.email "bot@local"
+          if [[ "$TITLE" =~ ^VERKAUFEN\ ([A-Z0-9]{1,12}(-USD)?)$ ]]; then
+            cmd=(close "${BASH_REMATCH[1]}")
+          elif [[ "$TITLE" =~ ^STORNIEREN\ ([0-9]{1,6})(\ [A-Z0-9-]{1,16})?$ ]]; then
+            cmd=(cancel "${BASH_REMATCH[1]}")
+          else
+            gh issue comment "$ISSUE" --body "Unbekannter Befehl. Erlaubt: \`VERKAUFEN SYMBOL\` oder \`STORNIEREN ORDER-NR\`."
+            gh issue close "$ISSUE"; exit 0
+          fi
+          for attempt in 1 2 3; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            if ! out=$(python -m bot "${cmd[@]}" 2>&1); then
+              gh issue comment "$ISSUE" --body "Nicht ausgeführt: $(echo "$out" | tail -1)"
+              gh issue close "$ISSUE"; exit 0
+            fi
+            git add data && git commit -q -m "Befehl vom Handy: $TITLE (#$ISSUE)"
+            git push -q origin main && break
+            sleep 5
+          done
+          # A sale fills at the open of the next 1-minute candle: wait for it, then settle.
+          if [ "${cmd[0]}" = close ]; then sleep 75; fi
+          for attempt in 1 2 3; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            python -m bot tick > /dev/null
+            git add data docs/data
+            git diff --cached --quiet || git commit -q -m "Bot-Lauf nach Befehl #$ISSUE"
+            git push -q origin main && break
+            sleep 5
+          done
+          result=$(python -m bot status --events 3)
+          gh issue comment "$ISSUE" --body "Ausgeführt: \`$TITLE\`
+          \`\`\`
+          $result
+          \`\`\`
+          Steht der Verkauf noch als angefordert drin (z. B. Börse geschlossen), wird er zur nächsten Handelsminute ausgeführt."
+          gh issue close "$ISSUE"
