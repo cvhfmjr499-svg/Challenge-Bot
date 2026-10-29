@@ -16,22 +16,7 @@
       "close_requested": true
     }
   },
-  "orders": [
-    {
-      "id": 6,
-      "symbol": "SUI20947-USD",
-      "type": "stop",
-      "entry": 0.921761,
-      "stop": 0.905947,
-      "target": 0.969203,
-      "qty": 655.57,
-      "planned_risk": 12.96,
-      "reason": "Aggressiv: Ausbruch ueber 2-Std-Hoch (nur bei Staerke), ueber VWAP, EMA9>EMA21, Stop unter 2-Std-Tief",
-      "created_at": "2026-10-29T06:39:58.641325+00:00",
-      "expires_at": "2026-10-29T08:09:58.641325+00:00",
-      "triggered": false
-    }
-  ],
+  "orders": [],
   "closed_trades": [
     {
       "symbol": "ETH-USD",
@@ -52,7 +37,7 @@
     "ETH-USD": "2026-10-28T20:31:00+00:00",
     "TSLA": "2026-10-28T19:59:00+00:00",
     "BNB-USD": "2026-10-29T06:29:00+00:00",
-    "SUI20947-USD": "2026-10-29T08:05:00+00:00"
+    "SUI20947-USD": "2026-10-29T08:10:00+00:00"
   },
   "equity_curve": [
     {
@@ -414,6 +399,11 @@
       "ts": "2026-10-29T08:06:14.696033+00:00",
       "equity": 1009.29,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-29T08:11:02.161572+00:00",
+      "equity": 1009.29,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -472,8 +462,12 @@
     {
       "ts": "2026-10-29T06:39:58.641325+00:00",
       "text": "Order #6 SUI20947-USD stop 655.57 @ 0.921761 Stop 0.905947 Ziel 0.969203"
+    },
+    {
+      "ts": "2026-10-29T08:11:02.161572+00:00",
+      "text": "Order #6 SUI20947-USD abgelaufen."
     }
   ],
   "next_id": 7,
-  "last_tick": "2026-10-29T08:06:16.773510+00:00"
+  "last_tick": "2026-10-29T08:11:20.755706+00:00"
 }
