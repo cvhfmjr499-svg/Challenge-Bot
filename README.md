@@ -52,6 +52,9 @@ python3 -m pytest -q                # Regel-Tests
 
 ## Wie die Simulation rechnet
 - Kauf beim Ausbruch per Stop-Limit: Liegt der Eröffnungskurs mehr als 0,3 % über dem Einstieg, gibt es keine Ausführung.
+- Stop-Loss: sofortiger Verkauf, sobald eine 1-Minuten-Kerze den Stop berührt.
+- Ziel berührt, Kerze schließt darunter: Verkauf zum Schlusskurs dieser Kerze.
+- Ziel berührt, Kerze schließt darüber: kein Verkauf. Der Stop rückt auf das alte Ziel, das neue Ziel liegt eine Stop-Distanz höher (Stufe für Stufe).
 - Werden Stop und Ziel in derselben Kerze berührt, zählt der Stop.
 - Eine Kurslücke unter den Stop wird zum (schlechteren) Eröffnungskurs ausgeführt.
 - Ob die Verlustgrenze berührt wurde, wird an den Tiefs der Kerzen geprüft.

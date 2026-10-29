@@ -84,11 +84,11 @@ def test_breakout_fill_then_target(cfg, state):
         (99.5, 99.9, 99.4, 99.8),      # not triggered
         (99.9, 100.5, 99.8, 100.4),    # triggered, fills at 100
         (100.4, 103, 100.3, 102.9),
-        (103, 106.5, 102.8, 106.2),    # target
+        (103, 106.5, 102.8, 105.8),    # touches the target, closes below it
     ])})
     t = state["closed_trades"][0]
     assert t["exit_reason"] == "Ziel" and t["entry_price"] == 100
-    assert t["pnl"] == pytest.approx(d.qty * 6, abs=0.01)
+    assert t["pnl"] == pytest.approx(d.qty * 5.8, abs=0.01)
 
 
 def test_gap_above_cap_does_not_fill(cfg, state):
@@ -196,10 +196,10 @@ def test_crypto_weekend_stop_is_processed(cfg, state):
 def test_spread_is_charged_on_entry_and_exit(cfg, state):
     cfg["execution"]["spread_pct"] = 0.04
     d = place(cfg, state)
-    run(cfg, state, {"AAA": bars([(99.9, 100.2, 99.9, 100.1), (100.1, 106.5, 100, 106.2)])})
+    run(cfg, state, {"AAA": bars([(99.9, 100.2, 99.9, 100.1), (100.1, 106.5, 100, 105.9)])})
     t = state["closed_trades"][0]
     assert t["entry_price"] == pytest.approx(100.04)
-    assert t["exit_price"] == pytest.approx(106 * 0.9996, abs=1e-3)
+    assert t["exit_price"] == pytest.approx(105.9 * 0.9996, abs=1e-3)
     assert d.risk_amount <= 7.5
 
 
@@ -251,3 +251,14 @@ def test_move_stop_only_up_and_below_price(cfg, state):
     engine.move_stop(state, "AAA", engine.stop_for_profit(cfg, p, 1.0), T0.isoformat())
     run(cfg, state, {"AAA": bars([(101, 101, 99, 99.5)], start=T0 + timedelta(minutes=5))})
     assert state["closed_trades"][0]["pnl"] >= 0.99
+
+
+def test_close_above_target_keeps_running_and_locks_target(cfg, state):
+    place(cfg, state, target=106.0)
+    run(cfg, state, {"AAA": bars([(99.9, 100.2, 99.9, 100.1), (101, 106.8, 101, 106.5)])})
+    p = state["positions"]["AAA"]
+    assert p["stop"] == 106.0 and p["target"] > 106.0 and not state["closed_trades"]
+    # Next candle falls back: the stop at the old target sells with the planned gain.
+    run(cfg, state, {"AAA": bars([(106.4, 106.4, 105.5, 105.7)], start=T0 + timedelta(minutes=10))})
+    t = state["closed_trades"][0]
+    assert t["exit_reason"] == "Stop" and t["exit_price"] > 105.9

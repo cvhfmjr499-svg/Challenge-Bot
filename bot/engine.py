@@ -142,7 +142,19 @@ def _manage_position(state, sym, bar, ts, cfg):
     if bar["Low"] <= p["stop"]:
         _close_position(state, sym, min(p["stop"], bar["Open"]) * (1 - stop_slip), ts, "Stop", cfg)
     elif bar["High"] >= p["target"] and p["entry_ts"] != ts:
-        _close_position(state, sym, max(p["target"], bar["Open"]), ts, "Ziel", cfg)
+        if bar["Close"] > p["target"]:
+            # Closed above the target: keep running. Lock the old target with the stop and
+            # set the next target one initial risk-per-unit higher.
+            step = p["initial_risk"] / p["qty"]
+            old = p["target"]
+            p["stop"] = max(p["stop"], old)
+            p["target"] = round(old + step, 6)
+            p["last_price"] = bar["Close"]
+            log_event(state, ts, f"{sym} schloss über dem Ziel {old}: Stop -> {p['stop']}, "
+                                 f"neues Ziel {p['target']}")
+        else:
+            # Touched the target but closed below it: sell at the close of that candle.
+            _close_position(state, sym, bar["Close"], ts, "Ziel", cfg)
     else:
         p["last_price"] = bar["Close"]
 
