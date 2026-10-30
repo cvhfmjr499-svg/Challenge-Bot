@@ -55,5 +55,11 @@ def equity(state, prices=None):
     )
 
 
+def fmt_px(x):
+    """Price for display: 0.01 above 100 $, finer for cheap coins (DOGE, SUI)."""
+    x = float(x)
+    return f"{x:.2f}" if abs(x) >= 100 else f"{x:.4f}" if abs(x) >= 1 else f"{x:.6f}"
+
+
 def ny_date(ts_iso):
     return datetime.fromisoformat(ts_iso).astimezone(NY).date()

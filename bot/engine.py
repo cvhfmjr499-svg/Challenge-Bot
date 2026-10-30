@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from . import risk
 from .assets import is_crypto
 from .config import TRADING, floor_equity, goal_equity, target_equity
-from .state import NY, equity, log_event
+from .state import NY, equity, fmt_px, log_event
 
 BAR = timedelta(minutes=5)
 
@@ -94,7 +94,7 @@ def _close_position(state, sym, price, ts, why, cfg):
         "pnl": round(pnl, 2), "r": round(r_value, 2), "exit_reason": why,
         "reason": p.get("reason", ""),
     })
-    log_event(state, ts, f"EXIT {sym} {why} @ {price:.2f}  PnL {pnl:+.2f} $ ({r_value:+.2f} R)")
+    log_event(state, ts, f"EXIT {sym} {why} @ {fmt_px(price)}  PnL {pnl:+.2f} $ ({r_value:+.2f} R)")
 
 
 def _fill_order(state, o, bar, ts, cfg):
@@ -129,7 +129,7 @@ def _fill_order(state, o, bar, ts, cfg):
         "initial_risk": round(o["qty"] * (price - o["stop"]), 2), "reason": o["reason"],
         "close_requested": False,
     }
-    log_event(state, ts, f"FILL {o['symbol']} {o['qty']} @ {price:.2f}")
+    log_event(state, ts, f"FILL {o['symbol']} {o['qty']} @ {fmt_px(price)}")
     return True
 
 
@@ -215,7 +215,7 @@ def process_bars(state, cfg, bars, now: datetime):
             _finish(state, closes, ts_iso, "GOAL", "10.000-$-Ziel erreicht", cfg)
             break
         for sym, old, new in risk.protect_stops(state, cfg, closes):
-            log_event(state, ts_iso, f"Stop {sym} angehoben {old:.2f} -> {new:.2f} (Puffer-Schutz)")
+            log_event(state, ts_iso, f"Stop {sym} angehoben {fmt_px(old)} -> {fmt_px(new)} (Puffer-Schutz)")
 
     for o in list(state["orders"]):
         if now >= datetime.fromisoformat(o["expires_at"]):

@@ -9,7 +9,7 @@ from . import engine, export, market, risk, scanner
 from .assets import normalize
 from .runner import update
 from .config import floor_equity, goal_equity, load_config, target_equity
-from .state import (NY, STATE_PATH, equity, load_state, log_event, new_state, now_utc,
+from .state import (NY, STATE_PATH, fmt_px, equity, load_state, log_event, new_state, now_utc,
                     save_state)
 
 
@@ -48,8 +48,8 @@ def print_status(state, cfg):
     print(f"Freier Risiko-Puffer: {risk.room(state, cfg):.2f} $")
     for s, p in state["positions"].items():
         upnl = p["qty"] * (p["last_price"] - p["entry_price"])
-        print(f"  POS {s:5} {p['qty']:>8} @ {p['entry_price']:.2f}  jetzt {p['last_price']:.2f}"
-              f"  Stop {p['stop']:.2f}  Ziel {p['target']:.2f}  PnL {upnl:+.2f} $")
+        print(f"  POS {s:5} {p['qty']:>8} @ {fmt_px(p['entry_price'])}  jetzt {fmt_px(p['last_price'])}"
+              f"  Stop {fmt_px(p['stop'])}  Ziel {fmt_px(p['target'])}  PnL {upnl:+.2f} $")
     for o in state["orders"]:
         print(f"  ORDER #{o['id']} {o['symbol']:5} {o['type']} {o['qty']} @ {o['entry']}"
               f"  Stop {o['stop']}  Ziel {o['target']}  bis {o['expires_at'][:16]}")

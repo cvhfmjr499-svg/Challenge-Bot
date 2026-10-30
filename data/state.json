@@ -1,25 +1,22 @@
 {
   "status": "ACTIVE",
   "created_at": "2026-10-28T16:03:21.025727+00:00",
-  "cash": 1007.7175659703387,
+  "cash": 249.9826532923779,
   "peak_equity": 1023.1781423500388,
-  "positions": {},
-  "orders": [
-    {
-      "id": 11,
-      "symbol": "DOGE-USD",
-      "type": "stop",
-      "entry": 0.074957,
+  "positions": {
+    "DOGE-USD": {
+      "qty": 10104.886,
+      "entry_price": 0.075,
       "stop": 0.073483,
       "target": 0.079379,
-      "qty": 10104.886,
-      "planned_risk": 18.14,
+      "entry_ts": "2026-10-30T02:36:00+00:00",
+      "last_price": 0.07500000298023224,
+      "initial_risk": 15.2,
       "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch (nur bei Staerke), Mom 1h +0,54%, ueber VWAP, EMA9>EMA21",
-      "created_at": "2026-10-30T02:35:45.124118+00:00",
-      "expires_at": "2026-10-30T03:35:45.124118+00:00",
-      "triggered": false
+      "close_requested": false
     }
-  ],
+  },
+  "orders": [],
   "closed_trades": [
     {
       "symbol": "ETH-USD",
@@ -91,7 +88,7 @@
     "SUI20947-USD": "2026-10-29T08:10:00+00:00",
     "AVGO": "2026-10-29T14:35:00-04:00",
     "CRWD": "2026-10-29T15:24:00-04:00",
-    "DOGE-USD": "2026-10-30T02:34:00+00:00"
+    "DOGE-USD": "2026-10-30T02:39:00+00:00"
   },
   "equity_curve": [
     {
@@ -1548,6 +1545,11 @@
       "ts": "2026-10-30T02:35:45.124118+00:00",
       "equity": 1007.72,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-10-30T02:40:34.643876+00:00",
+      "equity": 1007.85,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -1674,6 +1676,10 @@
     {
       "ts": "2026-10-30T02:35:45.124118+00:00",
       "text": "Order #11 DOGE-USD stop 10104.886 @ 0.074957 Stop 0.073483 Ziel 0.079379"
+    },
+    {
+      "ts": "2026-10-30T02:36:00+00:00",
+      "text": "FILL DOGE-USD 10104.886 @ 0.07"
     }
   ],
   "next_id": 12,
