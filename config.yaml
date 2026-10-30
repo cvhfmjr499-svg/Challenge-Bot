@@ -47,7 +47,7 @@ funded:
 # Nur für das Paper-Konto. Endet automatisch zum Zeitpunkt `until`; danach gelten wieder `risk`.
 # Kein Hebel (Kraken Funded): mehr Risiko heißt größere Position und weiterer Stop.
 aggressive:
-  enabled: true
+  enabled: false              # am 30.10. pausiert: Rückblick-Test zeigt keinen Vorteil (LEARNINGS.md)
   until: "2026-10-30T22:00:00+01:00"
   risk:
     risk_per_trade_pct: 1.8      # ca. 18 $ pro Trade, zwei Verluste ≈ Grenze
