@@ -10,7 +10,7 @@
       "stop": 0.073483,
       "target": 0.079379,
       "entry_ts": "2026-10-30T02:36:00+00:00",
-      "last_price": 0.07604999840259552,
+      "last_price": 0.07601000368595123,
       "initial_risk": 15.2,
       "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch (nur bei Staerke), Mom 1h +0,54%, ueber VWAP, EMA9>EMA21",
       "close_requested": false
@@ -88,7 +88,7 @@
     "SUI20947-USD": "2026-10-29T08:10:00+00:00",
     "AVGO": "2026-10-29T14:35:00-04:00",
     "CRWD": "2026-10-29T15:24:00-04:00",
-    "DOGE-USD": "2026-10-30T07:23:00+00:00"
+    "DOGE-USD": "2026-10-30T07:25:00+00:00"
   },
   "equity_curve": [
     {
@@ -1978,5 +1978,5 @@
     }
   ],
   "next_id": 12,
-  "last_tick": "2026-10-30T07:24:07.950676+00:00"
+  "last_tick": "2026-10-30T07:26:48.383995+00:00"
 }
