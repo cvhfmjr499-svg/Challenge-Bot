@@ -13,7 +13,7 @@
       "last_price": 0.07530999928712845,
       "initial_risk": 15.2,
       "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch (nur bei Staerke), Mom 1h +0,54%, ueber VWAP, EMA9>EMA21",
-      "close_requested": false
+      "close_requested": "2026-10-30T09:59:48.234756+00:00"
     }
   },
   "orders": [],
@@ -2135,6 +2135,10 @@
     {
       "ts": "2026-10-30T02:36:00+00:00",
       "text": "FILL DOGE-USD 10104.886 @ 0.07"
+    },
+    {
+      "ts": "2026-10-30T09:59:48.234756+00:00",
+      "text": "DOGE-USD: Schlie\u00dfen zur n\u00e4chsten Kerze angefordert."
     }
   ],
   "next_id": 12,
