@@ -5,11 +5,13 @@ from datetime import datetime, timedelta, timezone
 import yfinance as yf
 
 from .scanner import _px
+from .state import NY
 
 STOCKS = ["TSLA", "NVDA", "AMD", "PLTR", "COIN", "HOOD", "MU", "META", "AVGO", "NFLX", "MSTR",
           "AMZN", "AAPL", "MSFT", "GOOGL", "ARM", "SHOP", "UBER", "CRWD", "ANET", "SMH", "QQQ"]
 CRYPTO = ["BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD", "DOGE-USD", "AVAX-USD", "LINK-USD", "SUI20947-USD"]
 RANGE_BARS = 6        # 30 minutes
+MIDDAY_NY = (11, 12)  # no stock entries 11:00-12:59 New York (backtest 21.-30.10.: -0.30 R per trade)
 MAX_STOP_PCT = 2.0    # wider than this is not an intraday trade
 
 
@@ -54,7 +56,8 @@ def _setup(sym, df, cfg, now, range_bars=RANGE_BARS):
 
 def scan(cfg, markets=("stocks", "crypto"), top=8, range_bars=RANGE_BARS):
     now = datetime.now(timezone.utc)
-    syms = (STOCKS if "stocks" in markets else []) + (CRYPTO if "crypto" in markets else [])
+    midday = now.astimezone(NY).hour in MIDDAY_NY
+    syms = (STOCKS if "stocks" in markets and not midday else []) + (CRYPTO if "crypto" in markets else [])
     rows = []
     for sym in syms:
         df = yf.Ticker(sym).history(period="5d", interval="5m", prepost=False).dropna()
