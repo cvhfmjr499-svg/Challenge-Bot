@@ -1,21 +1,9 @@
 {
   "status": "ACTIVE",
   "created_at": "2026-10-28T16:03:21.025727+00:00",
-  "cash": 249.9826532923779,
+  "cash": 1011.3842521151381,
   "peak_equity": 1023.1781423500388,
-  "positions": {
-    "DOGE-USD": {
-      "qty": 10104.886,
-      "entry_price": 0.075,
-      "stop": 0.073483,
-      "target": 0.079379,
-      "entry_ts": "2026-10-30T02:36:00+00:00",
-      "last_price": 0.07530999928712845,
-      "initial_risk": 15.2,
-      "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch (nur bei Staerke), Mom 1h +0,54%, ueber VWAP, EMA9>EMA21",
-      "close_requested": "2026-10-30T09:59:48.234756+00:00"
-    }
-  },
+  "positions": {},
   "orders": [],
   "closed_trades": [
     {
@@ -77,6 +65,18 @@
       "r": -1.17,
       "exit_reason": "Stop",
       "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch, ueber VWAP, EMA9>EMA21; Zahlen erst im Dezember (AAPL/UBER/SHOP/META wegen Zahlen ausgeschlossen)"
+    },
+    {
+      "symbol": "DOGE-USD",
+      "qty": 10104.886,
+      "entry_price": 0.075,
+      "exit_price": 0.0753,
+      "entry_ts": "2026-10-30T02:36:00+00:00",
+      "exit_ts": "2026-10-30T10:00:00+00:00",
+      "pnl": 3.54,
+      "r": 0.23,
+      "exit_reason": "manuell",
+      "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch (nur bei Staerke), Mom 1h +0,54%, ueber VWAP, EMA9>EMA21"
     }
   ],
   "cursor": {
@@ -88,7 +88,7 @@
     "SUI20947-USD": "2026-10-29T08:10:00+00:00",
     "AVGO": "2026-10-29T14:35:00-04:00",
     "CRWD": "2026-10-29T15:24:00-04:00",
-    "DOGE-USD": "2026-10-30T09:56:00+00:00"
+    "DOGE-USD": "2026-10-30T10:00:00+00:00"
   },
   "equity_curve": [
     {
@@ -2139,8 +2139,12 @@
     {
       "ts": "2026-10-30T09:59:48.234756+00:00",
       "text": "DOGE-USD: Schlie\u00dfen zur n\u00e4chsten Kerze angefordert."
+    },
+    {
+      "ts": "2026-10-30T10:00:00+00:00",
+      "text": "EXIT DOGE-USD manuell @ 0.075350  PnL +3.54 $ (+0.23 R)"
     }
   ],
   "next_id": 12,
-  "last_tick": "2026-10-30T09:57:51.943254+00:00"
+  "last_tick": "2026-10-30T10:01:05.119481+00:00"
 }
