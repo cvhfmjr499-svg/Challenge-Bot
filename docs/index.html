@@ -291,7 +291,7 @@ function updateQuote() {
   badge.hidden = !pos;
   if (pos) {
     const now = lastPrice[symbol] ?? pos.last_price, pnl = pos.qty * (now - pos.entry_price);
-    badge.textContent = `Long ${usd(pos.qty * pos.entry_price)} · ${signed(pnl)}`;
+    badge.textContent = `${pos.qty < 0 ? 'Short' : 'Long'} ${usd(Math.abs(pos.qty) * pos.entry_price)} · ${signed(pnl)}`;
     badge.className = 'badge ' + (pnl >= 0 ? 'pnl-up' : 'pnl-down');
   }
 }
@@ -327,12 +327,15 @@ function drawLevels() {
   updateZones();
   const bucket = (iso) => Math.floor(minute(iso) / (tf * 60)) * tf * 60;
   const marks = [];
+  // Buy = arrow up below the candle, sell = arrow down above it (short opens with a sell).
+  const buy = (time) => ({ time, position: 'belowBar', shape: 'arrowUp', size: 1 });
+  const sell = (time) => ({ time, position: 'aboveBar', shape: 'arrowDown', size: 1 });
   state.trades.filter((t) => t.symbol === symbol).forEach((t) => {
-    marks.push({ time: bucket(t.entry_ts), position: 'belowBar', color: css('--accent'), shape: 'arrowUp', size: 1 });
-    marks.push({ time: bucket(t.exit_ts), position: 'aboveBar', color: t.pnl >= 0 ? css('--up') : css('--down'), shape: 'arrowDown', size: 1,
-                 text: (t.pnl >= 0 ? '+' : '') + t.pnl.toFixed(2).replace('.', ',') });
+    const short = t.qty < 0, res = { color: t.pnl >= 0 ? css('--up') : css('--down'), text: (t.pnl >= 0 ? '+' : '') + t.pnl.toFixed(2).replace('.', ',') };
+    marks.push({ ...(short ? sell : buy)(bucket(t.entry_ts)), color: css('--accent') });
+    marks.push({ ...(short ? buy : sell)(bucket(t.exit_ts)), ...res });
   });
-  if (pos) marks.push({ time: bucket(pos.entry_ts), position: 'belowBar', color: css('--accent'), shape: 'arrowUp', size: 1 });
+  if (pos) marks.push({ ...(pos.qty < 0 ? sell : buy)(bucket(pos.entry_ts)), color: css('--accent') });
   const first = view[0]?.time ?? 0;
   series.setMarkers(marks.filter((m) => m.time >= first).sort((a, b) => a.time - b.time));
 }
@@ -340,8 +343,15 @@ let zone = null;
 function updateZones() {
   if (!zone || !view.length) { profitZone.setData([]); riskZone.setData([]); return; }
   const base = { type: 'price', price: zone.entry };
-  profitZone.applyOptions({ baseValue: base });
-  riskZone.applyOptions({ baseValue: base });
+  // Long: profit above the entry, risk below. Short: the other way round.
+  const a = (v, p) => `color-mix(in srgb, ${css(v)} ${p}%, transparent)`, none = 'transparent';
+  const up = zone.target > zone.entry;
+  profitZone.applyOptions({ baseValue: base,
+    topFillColor1: up ? a('--up', 26) : none, topFillColor2: up ? a('--up', 8) : none,
+    bottomFillColor1: up ? none : a('--up', 8), bottomFillColor2: up ? none : a('--up', 26) });
+  riskZone.applyOptions({ baseValue: base,
+    topFillColor1: up ? none : a('--down', 26), topFillColor2: up ? none : a('--down', 8),
+    bottomFillColor1: up ? a('--down', 8) : none, bottomFillColor2: up ? a('--down', 26) : none });
   // Zones start at the candle of the entry (or of the order), not at the left edge.
   const from = Math.floor(zone.from / (tf * 60)) * tf * 60;
   const span = view.filter((b) => b.time >= from);

@@ -18,7 +18,7 @@ def _rsi(c, n=2):
     return 100 - 100 / (1 + up / dn.replace(0, np.nan))
 
 
-def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5):
+def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5, short=False):
     now = datetime.now(timezone.utc)
     rows = []
     for sym in CRYPTO:
@@ -31,10 +31,15 @@ def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5):
                         (df["Low"] - c.shift()).abs()], axis=1).max(axis=1)
         atr = tr.rolling(14).mean().iloc[-1]
         ema50, r2, close = c.ewm(span=50).mean().iloc[-1], _rsi(c).iloc[-1], c.iloc[-1]
-        if not (close > ema50 and r2 < rsi_max):
+        # Long: dip in a short-term uptrend. Short (mirror): pop in a short-term downtrend.
+        if close > ema50 and r2 < rsi_max:
+            side, sign, extreme = "long", 1, r2
+        elif short and close < ema50 and r2 > 100 - rsi_max:
+            side, sign, extreme = "short", -1, 100 - r2
+        else:
             continue
-        rows.append({"symbol": sym, "close": _px(close), "stop": _px(close - stop_atr * atr),
-                     "target": _px(close + target_atr * atr), "rsi2": round(float(r2), 1),
-                     "atr_pct": round(float(atr / close * 100), 2)})
-    rows.sort(key=lambda r: r["rsi2"])
+        rows.append({"symbol": sym, "side": side, "close": _px(close), "stop": _px(close - sign * stop_atr * atr),
+                     "target": _px(close + sign * target_atr * atr), "rsi2": round(float(r2), 1),
+                     "extreme": round(float(extreme), 1), "atr_pct": round(float(atr / close * 100), 2)})
+    rows.sort(key=lambda r: r["extreme"])
     return rows

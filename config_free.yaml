@@ -1,4 +1,4 @@
-# Freies Test-Konto ohne Challenge-Regeln (Nutzerwunsch 4.11.). 5x Hebel (Nutzerwunsch).
+# Freies Test-Konto ohne Challenge-Regeln (Nutzerwunsch 4.11.). 5x Hebel, Long und Short (Nutzerwunsch).
 challenge:
   start_balance: 1000
   profit_target_pct: 100000
@@ -24,6 +24,7 @@ execution:
   spread_pct: 0.04
   crypto_order_hours: 24
   leverage: 5
+  allow_short: true
 funded:
   goal_equity: 10000
   risk:

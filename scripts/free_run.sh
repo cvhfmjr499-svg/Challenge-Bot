@@ -10,17 +10,20 @@ while [ "$(date +%s)" -lt "$END" ]; do
   python3 - <<'EOF' 2>&1 | grep -v Crumb
 import json, os, subprocess
 from bot import dips
+from bot.config import load_config
+from bot.state import buying_power
 s = json.load(open(os.environ["BOT_STATE"]))
 busy = set(s["positions"]) | {o["symbol"] for o in s["orders"]}
-free_cash = s["cash"] - sum(o["qty"] * o["entry"] for o in s["orders"])
+# With leverage cash can go negative; what matters is the free buying power after waiting orders.
+free = buying_power(s, load_config()) - sum(abs(o["qty"]) * o["entry"] for o in s["orders"])
 slots = 4 - len(busy)
-if slots > 0 and free_cash > 50:
-    for c in [c for c in dips.scan() if c["symbol"] not in busy][:slots]:
-        r = subprocess.run(["python3", "-m", "bot", "propose", c["symbol"], "--type", "market",
+if slots > 0 and free > 50:
+    for c in [c for c in dips.scan(short=True) if c["symbol"] not in busy][:slots]:
+        r = subprocess.run(["python3", "-m", "bot", "propose", c["symbol"], "--type", "market", "--side", c["side"],
                             "--stop", str(c["stop"]), "--target", str(c["target"]), "--expires-min", "10",
-                            "--reason", f"Rücksetzer: RSI2 {c['rsi2']}, über EMA50"],
+                            "--reason", f"{c['side'].capitalize()}: RSI2 {c['rsi2']}, " + ("über" if c['side'] == 'long' else "unter") + " EMA50"],
                            capture_output=True, text=True)
-        print(c["symbol"], "platziert" if "Order platziert" in r.stdout else "abgelehnt")
+        print(c["symbol"], c["side"], "platziert" if "Order platziert" in r.stdout else "abgelehnt")
 EOF
   T=$(( $(date +%s) + 120 )); until [ "$(date +%s)" -ge "$T" ] || [ "$(date +%s)" -ge "$END" ]; do sleep 5; done
 done

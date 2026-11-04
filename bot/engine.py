@@ -63,28 +63,32 @@ def place_order(state, prop, decision, now: datetime, cfg=None, expires_minutes=
 
 
 def stop_for_profit(cfg, position, profit):
-    """Stop price at which closing (after stop slippage and spread) still earns `profit`."""
+    """Stop price at which closing (after stop slippage and spread) still earns `profit`.
+    Short positions have a negative qty; their exit is a buy, so slippage and spread add."""
     ex = cfg["execution"]
-    net = (1 - ex["stop_exit_slippage_pct"] / 100) * (1 - ex.get("spread_pct", 0) / 100)
+    slip, spread = ex["stop_exit_slippage_pct"] / 100, ex.get("spread_pct", 0) / 100
+    net = (1 - slip) * (1 - spread) if position["qty"] > 0 else (1 + slip) * (1 + spread)
     return (position["entry_price"] + profit / position["qty"]) / net
 
 
 def move_stop(state, sym, new_stop, ts):
-    """Raise a position's stop. Lowering it or setting it at or above the price is refused."""
+    """Tighten a position's stop (up for long, down for short). Loosening it is refused."""
     p = state["positions"].get(sym)
     if p is None:
         raise ValueError(f"Keine Position {sym}.")
-    if new_stop <= p["stop"]:
-        raise ValueError(f"Stop darf nur steigen (jetzt {p['stop']}, neu {new_stop:.4f}).")
-    if new_stop >= p["last_price"]:
-        raise ValueError(f"Stop {new_stop:.4f} liegt nicht unter dem Kurs {p['last_price']:.4f}.")
+    long_ = p["qty"] > 0
+    if (new_stop <= p["stop"]) if long_ else (new_stop >= p["stop"]):
+        raise ValueError(f"Stop darf nur enger werden (jetzt {p['stop']}, neu {new_stop:.4f}).")
+    if (new_stop >= p["last_price"]) if long_ else (new_stop <= p["last_price"]):
+        raise ValueError(f"Stop {new_stop:.4f} liegt auf der falschen Seite des Kurses {p['last_price']:.4f}.")
     log_event(state, ts, f"Stop {sym} nachgezogen {p['stop']} -> {round(new_stop, 4)}")
     p["stop"] = round(new_stop, 4)
 
 
 def _close_position(state, sym, price, ts, why, cfg):
-    price *= 1 - cfg["execution"].get("spread_pct", 0) / 100
+    spread = cfg["execution"].get("spread_pct", 0) / 100
     p = state["positions"].pop(sym)
+    price *= (1 - spread) if p["qty"] > 0 else (1 + spread)   # long sells, short buys back
     pnl = p["qty"] * (price - p["entry_price"])
     state["cash"] += p["qty"] * price
     r_value = p["initial_risk"] and pnl / p["initial_risk"]
@@ -97,10 +101,29 @@ def _close_position(state, sym, price, ts, why, cfg):
     log_event(state, ts, f"EXIT {sym} {why} @ {fmt_px(price)}  PnL {pnl:+.2f} $ ({r_value:+.2f} R)")
 
 
+def _fill_short(o, bar, cfg):
+    """Sell-side mirror of the long fill rules. Returns the fill price or None."""
+    floor = o["entry"] * (1 - cfg["execution"]["entry_slippage_cap_pct"] / 100)
+    if o["type"] == "limit":
+        return max(o["entry"], bar["Open"]) if bar["High"] >= o["entry"] else None
+    if o["type"] == "market":
+        return max(floor, bar["Open"]) if bar["High"] >= floor else None
+    if not o["triggered"] and bar["Low"] <= o["entry"]:
+        o["triggered"] = True
+        if bar["Open"] >= floor:
+            return min(o["entry"], bar["Open"])
+        return floor if bar["High"] >= floor else None
+    if o["triggered"] and bar["High"] >= floor:
+        return max(floor, bar["Open"])
+    return None
+
+
 def _fill_order(state, o, bar, ts, cfg):
     cap = o["entry"] * (1 + cfg["execution"]["entry_slippage_cap_pct"] / 100)
     price = None
-    if o["type"] == "limit":
+    if o["qty"] < 0:
+        price = _fill_short(o, bar, cfg)
+    elif o["type"] == "limit":
         if bar["Low"] <= o["entry"]:
             price = min(o["entry"], bar["Open"])
     elif o["type"] == "market":
@@ -117,9 +140,10 @@ def _fill_order(state, o, bar, ts, cfg):
             price = min(cap, bar["Open"])
     if price is None:
         return False
-    price *= 1 + cfg["execution"].get("spread_pct", 0) / 100
-    cost = o["qty"] * price
-    if cost > buying_power(state, cfg) + 1e-9:
+    spread = cfg["execution"].get("spread_pct", 0) / 100
+    price *= (1 + spread) if o["qty"] > 0 else (1 - spread)
+    cost = o["qty"] * price          # negative for a short: the sale adds cash
+    if abs(cost) > buying_power(state, cfg) + 1e-9:
         log_event(state, ts, f"Order #{o['id']} {o['symbol']} storniert: nicht genug Cash.")
         return True
     state["cash"] -= cost
@@ -141,6 +165,9 @@ def _manage_position(state, sym, bar, ts, cfg):
         _close_position(state, sym, bar["Open"], ts, "manuell", cfg)
         return
     stop_slip = cfg["execution"]["stop_exit_slippage_pct"] / 100
+    if p["qty"] < 0:
+        _manage_short(state, sym, p, bar, ts, cfg, stop_slip)
+        return
     if bar["Low"] <= p["stop"]:
         _close_position(state, sym, min(p["stop"], bar["Open"]) * (1 - stop_slip), ts, "Stop", cfg)
     elif bar["High"] >= p["target"] and p["entry_ts"] != ts:
@@ -156,6 +183,25 @@ def _manage_position(state, sym, bar, ts, cfg):
                                  f"neues Ziel {p['target']}")
         else:
             # Touched the target but closed below it: sell at the close of that candle.
+            _close_position(state, sym, bar["Close"], ts, "Ziel", cfg)
+    else:
+        p["last_price"] = bar["Close"]
+
+
+def _manage_short(state, sym, p, bar, ts, cfg, stop_slip):
+    """Mirror of the long rules: stop above, target below, run on while closing below the target."""
+    if bar["High"] >= p["stop"]:
+        _close_position(state, sym, max(p["stop"], bar["Open"]) * (1 + stop_slip), ts, "Stop", cfg)
+    elif bar["Low"] <= p["target"] and p["entry_ts"] != ts:
+        if bar["Close"] < p["target"]:
+            step = p["initial_risk"] / abs(p["qty"])
+            old = p["target"]
+            p["stop"] = min(p["stop"], old)
+            p["target"] = round(old - step, 6)
+            p["last_price"] = bar["Close"]
+            log_event(state, ts, f"{sym} schloss unter dem Ziel {old}: Stop -> {p['stop']}, "
+                                 f"neues Ziel {p['target']}")
+        else:
             _close_position(state, sym, bar["Close"], ts, "Ziel", cfg)
     else:
         p["last_price"] = bar["Close"]
@@ -196,8 +242,8 @@ def process_bars(state, cfg, bars, now: datetime):
                     # The fill bar may also hit the stop (conservative); targets wait a bar.
             if sym in state["positions"]:
                 _manage_position(state, sym, bar, ts_iso, cfg)
-            if sym in state["positions"]:
-                lows[sym] = bar["Low"]
+            if sym in state["positions"]:   # worst price of the bar for this position's side
+                lows[sym] = bar["Low"] if state["positions"][sym]["qty"] > 0 else bar["High"]
 
         closes = {s: p["last_price"] for s, p in state["positions"].items()}
         eq_close = equity(state)

@@ -15,6 +15,7 @@ class Proposal:
     stop: float
     target: float
     entry_type: str = "stop"  # stop (breakout) | limit | market
+    side: str = "long"        # long | short (short needs execution.allow_short)
     reason: str = ""
 
 
@@ -33,7 +34,7 @@ def committed_risk(state, cfg):
     for p in state["positions"].values():
         total += max(0.0, p["qty"] * (p["last_price"] - p["stop"]))
     for o in state["orders"]:
-        total += o["qty"] * per_share_risk(cfg, o["entry"], o["stop"])
+        total += abs(o["qty"]) * per_share_risk(cfg, o["entry"], o["stop"])
     return total
 
 
@@ -57,12 +58,14 @@ def realized_pnl_on(state, day):
 
 
 def per_share_risk(cfg, entry, stop):
-    """Worst-case loss per unit: capped entry slippage + spread on both sides + stop slippage."""
+    """Worst-case loss per unit: capped entry slippage + spread on both sides + stop slippage.
+    A stop above the entry means a short."""
     ex = cfg["execution"]
     spread = ex.get("spread_pct", 0) / 100
-    buy = entry * (1 + ex["entry_slippage_cap_pct"] / 100) * (1 + spread)
-    sell = stop * (1 - ex["stop_exit_slippage_pct"] / 100) * (1 - spread)
-    return buy - sell
+    cap, slip = ex["entry_slippage_cap_pct"] / 100, ex["stop_exit_slippage_pct"] / 100
+    if stop < entry:
+        return entry * (1 + cap) * (1 + spread) - stop * (1 - slip) * (1 - spread)
+    return stop * (1 + slip) * (1 + spread) - entry * (1 - cap) * (1 - spread)
 
 
 def evaluate(cfg, state, prop: Proposal, now_iso):
@@ -75,16 +78,19 @@ def evaluate(cfg, state, prop: Proposal, now_iso):
         rej.append(f"Handel gestoppt (Status {state['status']}).")
     if prop.entry_type not in ("stop", "limit", "market"):
         rej.append(f"Unbekannter Order-Typ {prop.entry_type}.")
-    if not (prop.stop < prop.entry < prop.target):
-        rej.append("Nur Long: Stop < Einstieg < Ziel erforderlich.")
+    short = prop.side == "short"
+    if short and not cfg["execution"].get("allow_short"):
+        rej.append("Short ist für dieses Konto nicht erlaubt.")
+    if not (short and prop.target < prop.entry < prop.stop) and not (not short and prop.stop < prop.entry < prop.target):
+        rej.append("Long: Stop < Einstieg < Ziel; Short: Ziel < Einstieg < Stop.")
         return Decision(False, rejections=rej)
 
-    stop_pct = (prop.entry - prop.stop) / prop.entry * 100
+    stop_pct = abs(prop.entry - prop.stop) / prop.entry * 100
     if stop_pct < r["min_stop_pct"]:
         rej.append(f"Stop zu eng ({stop_pct:.2f} % < {r['min_stop_pct']} %).")
     if stop_pct > r["max_stop_pct"]:
         rej.append(f"Stop zu weit ({stop_pct:.2f} % > {r['max_stop_pct']} %).")
-    rr = round((prop.target - prop.entry) / (prop.entry - prop.stop), 2)
+    rr = round(abs(prop.target - prop.entry) / abs(prop.entry - prop.stop), 2)
     if rr < r["min_reward_risk"]:
         rej.append(f"Chance/Risiko {rr:.2f} < {r['min_reward_risk']}.")
 
@@ -126,7 +132,8 @@ def evaluate(cfg, state, prop: Proposal, now_iso):
         rej.append("Positionsgröße wäre 0.")
 
     risk_amount = qty * per_share
-    if state["status"] == "ACTIVE" and eq + qty * (prop.target - prop.entry) >= target_equity(cfg):
+    qty = -qty if short else qty
+    if state["status"] == "ACTIVE" and eq + abs(qty) * abs(prop.target - prop.entry) >= target_equity(cfg):
         notes.append("Dieser Trade allein könnte das Challenge-Ziel erreichen.")
     notes.append(f"Restpuffer vor Trade: {free:.2f} $, Budget: {budget:.2f} $.")
     return Decision(not rej, qty, round(risk_amount, 2), rej, notes)
@@ -153,7 +160,7 @@ def protect_stops(state, cfg, prices):
     for s, p in state["positions"].items():
         px = prices.get(s, p["last_price"])
         new_stop = round(px - (px - p["stop"]) * scale, 4)
-        if new_stop > p["stop"]:
+        if (new_stop > p["stop"]) if p["qty"] > 0 else (new_stop < p["stop"]):
             changes.append((s, p["stop"], new_stop))
             p["stop"] = new_stop
     return changes

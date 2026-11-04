@@ -284,3 +284,47 @@ def test_leverage_allows_bigger_positions(cfg, state):
     place(cfg, state, typ="market")
     run(cfg, state, {"AAA": bars([(100, 100.5, 99.9, 100.2)])})
     assert state["positions"]["AAA"]["qty"] * 100 > 1000 and state["cash"] < 0
+
+
+@pytest.fixture
+def short_cfg(cfg):
+    cfg["execution"].update({"allow_short": True, "leverage": 5})
+    cfg["challenge"]["max_drawdown_pct"] = 100
+    cfg["risk"].update({"max_room_fraction": 1, "max_position_pct": 50})
+    return cfg
+
+
+def place_short(cfg, state, entry=100.0, stop=102.0, target=94.0, typ="market"):
+    prop = risk.Proposal("AAA", entry, stop, target, typ, side="short")
+    d = risk.evaluate(cfg, state, prop, (T0 - timedelta(minutes=10)).isoformat())
+    assert d.approved, d.rejections
+    engine.place_order(state, prop, d, T0 - timedelta(minutes=10), cfg)
+    return d
+
+
+def test_short_rejected_without_permission(cfg, state):
+    d = risk.evaluate(cfg, state, risk.Proposal("AAA", 100, 102, 94, "market", side="short"), T0.isoformat())
+    assert not d.approved
+
+
+def test_short_profit_when_price_falls(short_cfg, state):
+    d = place_short(short_cfg, state)
+    run(short_cfg, state, {"AAA": bars([(100, 100.2, 99.8, 100), (99, 99, 93.5, 94.2)])})
+    t = state["closed_trades"][0]
+    assert d.qty < 0 and t["exit_reason"] == "Ziel" and t["pnl"] > 0
+    assert equity(state) == pytest.approx(1000 + t["pnl"], abs=0.01)
+
+
+def test_short_stop_when_price_rises(short_cfg, state):
+    d = place_short(short_cfg, state)
+    run(short_cfg, state, {"AAA": bars([(100, 100.2, 99.8, 100), (101, 102.5, 100.8, 102.2)])})
+    t = state["closed_trades"][0]
+    assert t["exit_reason"] == "Stop" and t["pnl"] < 0
+    assert -t["pnl"] <= d.risk_amount + 0.01
+
+
+def test_short_runs_on_when_closing_below_target(short_cfg, state):
+    place_short(short_cfg, state)
+    run(short_cfg, state, {"AAA": bars([(100, 100.2, 99.8, 100), (99, 99, 93, 93.2)])})
+    p = state["positions"]["AAA"]
+    assert p["stop"] == 94.0 and p["target"] < 94.0 and not state["closed_trades"]

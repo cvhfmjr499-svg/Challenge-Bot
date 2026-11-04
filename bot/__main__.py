@@ -77,7 +77,7 @@ def cmd_propose(args, cfg):
     entry_type, entry = args.type, args.entry
     if entry_type == "market":
         entry = round(market.last_price(args.symbol), 2)
-    prop = risk.Proposal(args.symbol.upper(), entry, args.stop, args.target, entry_type, args.reason)
+    prop = risk.Proposal(args.symbol.upper(), entry, args.stop, args.target, entry_type, args.reason, args.side)
     d = risk.evaluate(cfg, state, prop, now.isoformat())
     print(json.dumps({"proposal": prop.__dict__, "approved": d.approved, "qty": d.qty,
                       "risk_amount": d.risk_amount, "rejections": d.rejections,
@@ -215,6 +215,7 @@ def main():
     p.add_argument("--reason", default="")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--expires-min", type=int, default=None, help="Order verfällt nach N Minuten")
+    p.add_argument("--side", choices=["long", "short"], default="long")
     p.set_defaults(f=cmd_propose)
     p = sub.add_parser("cancel"); p.add_argument("order_id", type=int); p.set_defaults(f=cmd_cancel)
     p = sub.add_parser("close"); p.add_argument("symbol"); p.set_defaults(f=cmd_close)
