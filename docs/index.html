@@ -212,6 +212,69 @@ const px = (v) => { const a = Math.abs(v); return new Intl.NumberFormat('de-DE',
 const berlin = (sec, opts) => new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', ...opts }).format(new Date(sec * 1000));
 const hhmm = (iso) => berlin(Date.parse(iso) / 1000, { hour: '2-digit', minute: '2-digit' });
 const dmhm = (iso) => berlin(Date.parse(iso) / 1000, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+// ---- ?lang=es shows the page in Spanish. German stays the default; text is translated as it is written.
+const LANG = new URLSearchParams(location.search).get('lang') === 'es' ? 'es' : 'de';
+const ES = [
+  ['Live-Kurse im Sekundentakt: Krypto von Kraken, Aktien vom Yahoo-Live-Stream (während der US-Handelszeit). Gewinn und Verlust offener Positionen laufen live mit. Der Bot rechnet Orders, Stops und Ziele minutengenau ab.',
+   'Precios en vivo al segundo: cripto desde Kraken, acciones desde el stream en vivo de Yahoo (en horario de EE. UU.). Ganancias y pérdidas de las posiciones abiertas en vivo. El bot liquida órdenes, stops y objetivos minuto a minuto.'],
+  ['1-Minuten-Kerzen, live. Antippen öffnet die Position im großen Chart.', 'Velas de 1 minuto, en vivo. Toca para abrir la posición en el gráfico grande.'],
+  ['Keine offene Position und keine wartende Order.', 'Ninguna posición abierta ni orden pendiente.'],
+  ['Noch keine abgeschlossenen Trades.', 'Todavía no hay operaciones cerradas.'],
+  ['Verkauf angefordert, wird zur nächsten Minute ausgeführt', 'Venta solicitada, se ejecuta en el próximo minuto'],
+  ['Schließen zur nächsten Kerze angefordert.', 'cierre solicitado para la próxima vela.'],
+  ['Yahoo, bis Kraken verbindet', 'Yahoo, hasta que conecte Kraken'],
+  ['Kraken getrennt, verbinde neu…', 'Kraken desconectado, reconectando…'],
+  ['Yahoo getrennt, verbinde neu…', 'Yahoo desconectado, reconectando…'],
+  ['Abstand zur Verlustgrenze', 'Distancia al límite de pérdida'],
+  ['Trades (davon Gewinner)', 'Operaciones (ganadoras)'],
+  ['Alle offenen Positionen', 'Todas las posiciones abiertas'],
+  ['Abgeschlossene Trades', 'Operaciones cerradas'],
+  ['Daten nicht erreichbar', 'Datos no disponibles'],
+  ['Bot: noch kein Lauf', 'Bot: aún sin ejecución'],
+  ['Bot abgerechnet', 'Bot actualizado'],
+  ['Bot: startet…', 'Bot: iniciando…'],
+  ['Ergebnis seit Start', 'Resultado desde el inicio'],
+  ['Freier Risiko-Puffer', 'Margen de riesgo libre'],
+  ['Kontostand (live)', 'Saldo (en vivo)'],
+  ['Gewinnzone bis Ziel', 'Zona de ganancia hasta el objetivo'],
+  ['Verlustzone bis Stop', 'Zona de pérdida hasta el stop'],
+  ['Live-Protokoll', 'Registro en vivo'],
+  ['Kurs: verbinde…', 'Precio: conectando…'],
+  ['Yahoo verbindet…', 'Yahoo conectando…'],
+  ['Test-Konto Live', 'Cuenta de prueba en vivo'],
+  ['Challenge-Bot Live', 'Challenge-Bot en vivo'],
+  ['Phase 1: Challenge', 'Fase 1: Challenge'], ['Ohne Challenge-Regeln', 'Sin reglas del challenge'],
+  ['Bis zum Ziel', 'Hasta el objetivo'],
+  ['(verzögert)', '(con retraso)'],
+  ['Long-Signal', 'señal long'], ['Short-Signal', 'señal short'],
+  ['✕ Schließen', '✕ Cerrar'], ['Vollbild', 'Pantalla completa'],
+  ['Stornieren', 'Cancelar'], ['Verkaufen', 'Vender'],
+  ['Kraken live', 'Kraken en vivo'], ['Yahoo live', 'Yahoo en vivo'],
+  ['nachgezogen', 'ajustado'], ['storniert', 'cancelada'], ['abgelaufen', 'expirada'],
+  ['Pos.', 'pos.'], ['Kurs: ', 'Precio: '],
+].map(([de, es]) => [new RegExp(de.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), es]).concat([
+  // Single words: only as whole words, after the phrases above.
+  ['Einstieg', 'Entrada'], ['Ausstieg', 'Salida'], ['Ausgang', 'Motivo'], ['Ergebnis', 'Resultado'],
+  ['Verkauf', 'Venta'], ['Kauf', 'Compra'], ['Offen', 'Abierto'], ['Ziel', 'Objetivo'], ['jetzt', 'ahora'],
+  ['Risiko', 'Riesgo'], ['seit', 'desde'], ['bis', 'hasta'], ['manuell', 'manual'], ['Symbol', 'Símbolo'],
+].map(([de, es]) => [new RegExp('(^|[^A-Za-zÄÖÜäöüß])' + de + '(?=$|[^A-Za-zÄÖÜäöüß])', 'g'), '$1' + es]));
+const tr = (s) => (LANG === 'es' && s ? ES.reduce((a, [re, r]) => a.replace(re, r), s) : s);
+if (LANG === 'es') {
+  document.documentElement.lang = 'es';
+  const fix = (n) => { const v = tr(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; };
+  const walk = (root) => {
+    if (root.nodeType === 3) return fix(root);
+    const it = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let n = it.nextNode(); n; n = it.nextNode()) if (!n.parentElement.closest('script,style')) fix(n);
+  };
+  walk(document.body);
+  new MutationObserver((ms) => ms.forEach((m) => {
+    if (m.type === 'characterData') fix(m.target); else m.addedNodes.forEach(walk);
+  })).observe(document.body, { subtree: true, childList: true, characterData: true });
+  const keepTitle = () => { const v = tr(document.title); if (v !== document.title) document.title = v; };
+  keepTitle(); new MutationObserver(keepTitle).observe(document.querySelector('title'), { childList: true });
+}
 const isCrypto = (s) => s.endsWith('-USD');
 const krakenPair = (s) => s.replace('SUI20947', 'SUI').replace('-USD', '/USD');
 const minute = (iso) => Math.floor(Date.parse(iso) / 60000) * 60;
@@ -439,7 +502,7 @@ function drawLevels() {
   const add = (price, color, title, style) => {
     if (price == null) return;
     levels.push(price);
-    lines.push(series.createPriceLine({ price, color, lineWidth: 1, lineStyle: style, axisLabelVisible: true, title }));
+    lines.push(series.createPriceLine({ price, color, lineWidth: 1, lineStyle: style, axisLabelVisible: true, title: tr(title) }));
   };
   const plan = pos ? { entry: pos.entry_price, stop: pos.stop, target: pos.target, label: 'Einstieg', from: minute(pos.entry_ts) }
     : ord ? { entry: ord.entry, stop: ord.stop, target: ord.target, label: 'Order', from: minute(ord.created_at) } : null;
@@ -729,7 +792,7 @@ function liveEquity() {
 
 function renderStats() {
   const eq = liveEquity();
-  $('phase').textContent = state.phase;
+  $('phase').textContent = TEST ? 'Ohne Challenge-Regeln' : state.phase;
   $('s-equity').textContent = usd(eq);
   if (TEST) {
     // The test account has no challenge goal or loss line: show result, trades and open positions.

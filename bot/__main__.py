@@ -30,7 +30,9 @@ def cmd_init(args, cfg):
 
 def cmd_update(args, cfg):
     state = _load()
-    update(state, cfg, now_utc())
+    now = now_utc()
+    update(state, cfg, now)
+    state["last_tick"] = now.isoformat()   # the phone page shows when the bot last settled
     save_state(state)
     print_status(state, cfg)
 
