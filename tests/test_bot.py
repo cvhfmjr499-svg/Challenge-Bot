@@ -371,3 +371,9 @@ def test_cli_places_short_order(tmp_path):
     out = run_("propose", "AAA", "--type", "limit", "--entry", "100", "--stop", "102", "--target", "94",
                "--side", "short", "--dry-run").stdout
     assert '"approved": true' in out and '"qty": -' in out
+
+
+def test_minimum_risk_amount(cfg, state):
+    cfg["risk"]["min_risk_amount"] = 80
+    d = risk.evaluate(cfg, state, risk.Proposal("AAA", 100, 98, 106), T0.isoformat())
+    assert not d.approved and any("Minimum" in r for r in d.rejections)

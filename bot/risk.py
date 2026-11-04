@@ -132,6 +132,8 @@ def evaluate(cfg, state, prop: Proposal, now_iso):
         rej.append("Positionsgröße wäre 0.")
 
     risk_amount = qty * per_share
+    if r.get("min_risk_amount") and risk_amount < r["min_risk_amount"]:
+        rej.append(f"Risiko {risk_amount:.2f} $ unter dem Minimum von {r['min_risk_amount']} $.")
     qty = -qty if short else qty
     if state["status"] == "ACTIVE" and eq + abs(qty) * abs(prop.target - prop.entry) >= target_equity(cfg):
         notes.append("Dieser Trade allein könnte das Challenge-Ziel erreichen.")

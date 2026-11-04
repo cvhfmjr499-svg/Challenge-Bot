@@ -25,7 +25,7 @@ slots = 10 - len(busy)
 ny = datetime.now(ZoneInfo("America/New_York"))
 symbols = CRYPTO + (STOCKS if ny.weekday() < 5 and (9, 35) <= (ny.hour, ny.minute) < (15, 30) else [])
 if slots > 0 and free > 50:
-    for c in [c for c in dips.scan(rsi_max=35, short=True, target_atr=6.0, symbols=symbols, trend_rsi=45) if c["symbol"] not in busy][:slots]:
+    for c in [c for c in dips.scan(rsi_max=35, short=True, target_atr=6.0, symbols=symbols, trend_rsi=45, min_stop_pct=1.2) if c["symbol"] not in busy][:slots]:
         r = subprocess.run(["python3", "-m", "bot", "propose", c["symbol"], "--type", "market", "--side", c["side"],
                             "--stop", str(c["stop"]), "--target", str(c["target"]), "--expires-min", "10",
                             "--reason", f"{c['side'].capitalize()}: RSI2 {c['rsi2']}, " + ("über" if c['side'] == 'long' else "unter") + " EMA50"],
