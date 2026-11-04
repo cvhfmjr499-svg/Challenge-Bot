@@ -13,7 +13,7 @@ risk:
   max_open_positions: 6
   max_crypto_positions: 6
   max_position_pct: 100
-  min_stop_pct: 0.3
+  min_stop_pct: 0.6
   max_stop_pct: 6
   pause_after_losses: 99
   daily_loss_limit_pct: 100

@@ -18,7 +18,8 @@ def _rsi(c, n=2):
     return 100 - 100 / (1 + up / dn.replace(0, np.nan))
 
 
-def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5, short=False, symbols=None, trend_rsi=40, trend_gap_pct=0.3):
+def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5, short=False, symbols=None, trend_rsi=40, trend_gap_pct=0.3,
+         min_stop_pct=0.6):
     now = datetime.now(timezone.utc)
     rows = []
     for sym in symbols or CRYPTO:
@@ -42,7 +43,10 @@ def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5, short=False, symbols=None, tr
             side, sign, extreme = "short", -1, 100 - r2
         else:
             continue
-        rows.append({"symbol": sym, "side": side, "close": _px(close), "stop": _px(close - sign * stop_atr * atr),
+        # Stops closer than min_stop_pct get shaken out by noise and lose a big share of R to costs
+        # (SOL 4.11.: 0.34 % stop, out after 3 minutes, -1.26 R). So the stop is at least that far.
+        dist = max(stop_atr * atr, close * min_stop_pct / 100)
+        rows.append({"symbol": sym, "side": side, "close": _px(close), "stop": _px(close - sign * dist),
                      "target": _px(close + sign * target_atr * atr), "rsi2": round(float(r2), 1),
                      "extreme": round(float(extreme), 1), "atr_pct": round(float(atr / close * 100), 2)})
     rows.sort(key=lambda r: r["extreme"])

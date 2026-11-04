@@ -45,3 +45,21 @@ Verkauf beim ersten Schlusskurs über der 5-Tage-Linie, Stop 2–3 ATR, spätest
 ist aber klein, und der Test hat Schwächen: Die Aktienliste besteht aus heutigen Gewinnern (Überlebens-Verzerrung),
 und die Werte wurden nicht an einem getrennten Zeitraum geprüft. Nächster Schritt: Prüfung an getrennten Zeiträumen
 und mit einer breiteren Aktienliste, danach Paper-Handel mit normalem Risiko.
+
+## 04.11.2026 – Test-Konto (ohne Challenge-Regeln, 5x Hebel)
+
+| Trade | Stop-Abstand | Ergebnis |
+|---|---|---|
+| SUI Long | 0,73 % | +0,44 $ |
+| AVAX Long | 0,52 % | +5,67 $ |
+| SOL Long | 0,34 % | −10,80 $ (−1,26 R, nach 3 Minuten) |
+
+**Erkenntnis:** Der einzige Verlust hatte den engsten Stop. Bei 0,34 % reicht normales Rauschen, und Spread plus
+Ausführung kosten rund ein Viertel des Risikos (daher −1,26 R statt −1 R). Passt zum Rückblick-Test vom 30.10.
+→ Stop jetzt mindestens 0,6 % vom Einstieg (`bot/dips.py`, `config_free.yaml`).
+
+**Abgelehnter PLTR-Short:** Der Kurs lag beim Platzieren schon über dem geplanten Stop (veraltetes Signal).
+Die Ablehnung durch den Risiko-Wächter war richtig.
+
+**Aufgefallen (SOL-Rally 15:30):** Die Rücksetzer-Regel steigt in steile Anstiege nicht ein, weil RSI(2) nie unter 25 fällt.
+→ Trend-Rücksetzer ergänzt: bei Kurs ≥ 0,3 % über/unter EMA 50 reicht RSI(2) < 40 bzw. > 60. Noch nicht im Rückblick getestet.
