@@ -43,6 +43,7 @@ for o in s["orders"]:
 for sym in s["positions"]:
     subprocess.run(["python3", "-m", "bot", "close", sym])
 EOF
-T=$(( $(date +%s) + 90 )); until [ "$(date +%s)" -ge "$T" ]; do sleep 5; done
+# The sale uses the first 1-minute candle after the request; wait until it is complete.
+T=$(( $(date +%s) + 150 )); until [ "$(date +%s)" -ge "$T" ]; do sleep 5; done
 python3 -m bot update 2>&1 | grep -v Crumb > /dev/null
 python3 -m bot status --events 60
