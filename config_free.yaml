@@ -6,13 +6,13 @@ challenge:
   trailing_drawdown: false
   trailing_locks_at_start: false
 risk:
-  risk_per_trade_pct: 2.0
+  risk_per_trade_pct: 5.0
   max_room_fraction: 1.0
   protect_fraction: 1.0
   min_reward_risk: 0.5
   max_open_positions: 4
   max_crypto_positions: 4
-  max_position_pct: 30
+  max_position_pct: 50
   min_stop_pct: 0.3
   max_stop_pct: 6
   pause_after_losses: 99
