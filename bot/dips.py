@@ -18,11 +18,11 @@ def _rsi(c, n=2):
     return 100 - 100 / (1 + up / dn.replace(0, np.nan))
 
 
-def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5, short=False):
+def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5, short=False, symbols=None):
     now = datetime.now(timezone.utc)
     rows = []
-    for sym in CRYPTO:
-        df = yf.Ticker(sym).history(period="2d", interval="5m").dropna()
+    for sym in symbols or CRYPTO:
+        df = yf.Ticker(sym).history(period="2d", interval="5m", prepost=False).dropna()
         df = df[df.index + timedelta(minutes=5) <= now]
         if len(df) < 60:
             continue

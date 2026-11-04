@@ -10,23 +10,29 @@ while [ "$(date +%s)" -lt "$END" ]; do
   python3 -m bot update 2>&1 | grep -v Crumb > /dev/null
   python3 - <<'EOF' 2>&1 | grep -v Crumb
 import json, os, subprocess
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from bot import dips
+from bot.intraday import CRYPTO, STOCKS
 from bot.config import load_config
 from bot.state import buying_power
 s = json.load(open(os.environ["BOT_STATE"]))
 busy = set(s["positions"]) | {o["symbol"] for o in s["orders"]}
 # With leverage cash can go negative; what matters is the free buying power after waiting orders.
 free = buying_power(s, load_config()) - sum(abs(o["qty"]) * o["entry"] for o in s["orders"])
-slots = 4 - len(busy)
+slots = 6 - len(busy)
+# Stocks only while the US session is open (09:35-15:30 New York), crypto always.
+ny = datetime.now(ZoneInfo("America/New_York"))
+symbols = CRYPTO + (STOCKS if ny.weekday() < 5 and (9, 35) <= (ny.hour, ny.minute) < (15, 30) else [])
 if slots > 0 and free > 50:
-    for c in [c for c in dips.scan(short=True, target_atr=6.0) if c["symbol"] not in busy][:slots]:
+    for c in [c for c in dips.scan(rsi_max=25, short=True, target_atr=6.0, symbols=symbols) if c["symbol"] not in busy][:slots]:
         r = subprocess.run(["python3", "-m", "bot", "propose", c["symbol"], "--type", "market", "--side", c["side"],
                             "--stop", str(c["stop"]), "--target", str(c["target"]), "--expires-min", "10",
                             "--reason", f"{c['side'].capitalize()}: RSI2 {c['rsi2']}, " + ("über" if c['side'] == 'long' else "unter") + " EMA50"],
                            capture_output=True, text=True)
         print(c["symbol"], c["side"], "platziert" if "Order platziert" in r.stdout else "abgelehnt")
 EOF
-  T=$(( $(date +%s) + 120 )); until [ "$(date +%s)" -ge "$T" ] || [ "$(date +%s)" -ge "$END" ]; do sleep 5; done
+  T=$(( $(date +%s) + 60 )); until [ "$(date +%s)" -ge "$T" ] || [ "$(date +%s)" -ge "$END" ]; do sleep 5; done
 done
 # Deadline: cancel waiting orders, close all positions at the next candle, settle.
 python3 - <<'EOF'

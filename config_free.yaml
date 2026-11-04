@@ -10,9 +10,9 @@ risk:
   max_room_fraction: 1.0
   protect_fraction: 1.0
   min_reward_risk: 0.5
-  max_open_positions: 4
-  max_crypto_positions: 4
-  max_position_pct: 50
+  max_open_positions: 6
+  max_crypto_positions: 6
+  max_position_pct: 40
   min_stop_pct: 0.3
   max_stop_pct: 6
   pause_after_losses: 99
