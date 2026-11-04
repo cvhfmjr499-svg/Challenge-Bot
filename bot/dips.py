@@ -1,0 +1,40 @@
+"""Crypto dip scan on 5-minute bars: short-term uptrend (above EMA50) with a sharp pullback
+(RSI(2) low). Entry at market, stop 2 ATR below, a near target (1.5 ATR) for a high hit rate.
+Backtest 28.10.-4.11. (scripts/backtest_crypto_dips.py): slightly negative after costs."""
+from datetime import datetime, timedelta, timezone
+
+import numpy as np
+import pandas as pd
+import yfinance as yf
+
+from .intraday import CRYPTO
+from .scanner import _px
+
+
+def _rsi(c, n=2):
+    d = c.diff()
+    up = d.clip(lower=0).ewm(alpha=1 / n, adjust=False).mean()
+    dn = (-d.clip(upper=0)).ewm(alpha=1 / n, adjust=False).mean()
+    return 100 - 100 / (1 + up / dn.replace(0, np.nan))
+
+
+def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5):
+    now = datetime.now(timezone.utc)
+    rows = []
+    for sym in CRYPTO:
+        df = yf.Ticker(sym).history(period="2d", interval="5m").dropna()
+        df = df[df.index + timedelta(minutes=5) <= now]
+        if len(df) < 60:
+            continue
+        c = df["Close"]
+        tr = pd.concat([df["High"] - df["Low"], (df["High"] - c.shift()).abs(),
+                        (df["Low"] - c.shift()).abs()], axis=1).max(axis=1)
+        atr = tr.rolling(14).mean().iloc[-1]
+        ema50, r2, close = c.ewm(span=50).mean().iloc[-1], _rsi(c).iloc[-1], c.iloc[-1]
+        if not (close > ema50 and r2 < rsi_max):
+            continue
+        rows.append({"symbol": sym, "close": _px(close), "stop": _px(close - stop_atr * atr),
+                     "target": _px(close + target_atr * atr), "rsi2": round(float(r2), 1),
+                     "atr_pct": round(float(atr / close * 100), 2)})
+    rows.sort(key=lambda r: r["rsi2"])
+    return rows

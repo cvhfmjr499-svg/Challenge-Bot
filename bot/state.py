@@ -1,12 +1,15 @@
 """Persistent account state (state.json). Only the bot writes this file."""
 import json
+import os
+from pathlib import Path
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from .config import ROOT, start_balance
 
 NY = ZoneInfo("America/New_York")
-STATE_PATH = ROOT / "data" / "state.json"
+# BOT_STATE / BOT_CONFIG select a second account (e.g. a free test account without challenge rules).
+STATE_PATH = Path(os.environ.get("BOT_STATE", ROOT / "data" / "state.json"))
 
 
 def now_utc():
