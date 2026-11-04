@@ -25,6 +25,10 @@ execution:
   crypto_order_hours: 24
   leverage: 5
   allow_short: true
+  trailing:
+    breakeven_r: 0.5
+    trail_start_r: 1.0
+    trail_r: 0.75
 funded:
   goal_equity: 10000
   risk:

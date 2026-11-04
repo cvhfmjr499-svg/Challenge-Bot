@@ -2,6 +2,7 @@
 # Free test account (no challenge rules): trade crypto dips until END (Berlin time), then close all.
 # Usage: scripts/free_run.sh "2026-11-04 12:45"
 set -u
+# Far targets (6 ATR): the trailing stop in config_free.yaml decides the exit.
 cd "$(dirname "$0")/.." || exit 1
 export BOT_STATE="$PWD/data/free/state.json" BOT_CONFIG="$PWD/config_free.yaml"
 END=$(TZ=Europe/Berlin date -d "$1" +%s)
@@ -18,7 +19,7 @@ busy = set(s["positions"]) | {o["symbol"] for o in s["orders"]}
 free = buying_power(s, load_config()) - sum(abs(o["qty"]) * o["entry"] for o in s["orders"])
 slots = 4 - len(busy)
 if slots > 0 and free > 50:
-    for c in [c for c in dips.scan(short=True) if c["symbol"] not in busy][:slots]:
+    for c in [c for c in dips.scan(short=True, target_atr=6.0) if c["symbol"] not in busy][:slots]:
         r = subprocess.run(["python3", "-m", "bot", "propose", c["symbol"], "--type", "market", "--side", c["side"],
                             "--stop", str(c["stop"]), "--target", str(c["target"]), "--expires-min", "10",
                             "--reason", f"{c['side'].capitalize()}: RSI2 {c['rsi2']}, " + ("über" if c['side'] == 'long' else "unter") + " EMA50"],

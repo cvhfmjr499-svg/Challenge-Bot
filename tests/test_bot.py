@@ -328,3 +328,28 @@ def test_short_runs_on_when_closing_below_target(short_cfg, state):
     run(short_cfg, state, {"AAA": bars([(100, 100.2, 99.8, 100), (99, 99, 93, 93.2)])})
     p = state["positions"]["AAA"]
     assert p["stop"] == 94.0 and p["target"] < 94.0 and not state["closed_trades"]
+
+
+TRAIL = {"breakeven_r": 0.5, "trail_start_r": 1.0, "trail_r": 0.75}
+
+
+def test_trailing_moves_stop_to_breakeven_then_trails(cfg, state):
+    cfg["execution"]["trailing"] = TRAIL
+    place(cfg, state, entry=100.0, stop=98.0, target=120.0, typ="market")
+    run(cfg, state, {"AAA": bars([(100, 100.2, 99.9, 100.1), (100.1, 101.3, 100.1, 101.2)])})
+    p = state["positions"]["AAA"]
+    assert p["stop"] > p["entry_price"]                       # break-even after +0.5 R
+    run(cfg, state, {"AAA": bars([(101.2, 104.0, 101.1, 103.8)], start=T0 + timedelta(minutes=10))})
+    assert p["stop"] == pytest.approx(104.0 - 0.75 * p["initial_risk"] / p["qty"], abs=1e-6)
+    run(cfg, state, {"AAA": bars([(103.8, 103.9, 101.0, 101.5)], start=T0 + timedelta(minutes=15))})
+    t = state["closed_trades"][0]
+    assert t["exit_reason"] == "Stop" and t["pnl"] > 0        # a winner never turns into a loss
+
+
+def test_trailing_works_for_shorts(short_cfg, state):
+    short_cfg["execution"]["trailing"] = TRAIL
+    place_short(short_cfg, state, entry=100.0, stop=102.0, target=80.0)
+    run(short_cfg, state, {"AAA": bars([(100, 100.2, 99.8, 100), (99.5, 99.6, 96.5, 96.8),
+                                        (96.8, 99.5, 96.7, 99.4)])})
+    t = state["closed_trades"][0]
+    assert t["exit_reason"] == "Stop" and t["pnl"] > 0

@@ -157,6 +157,34 @@ def _fill_order(state, o, bar, ts, cfg):
     return True
 
 
+def _trail(state, sym, bar, ts, cfg):
+    """Move the stop with the trade (execution.trailing in the config):
+    - from +breakeven_r R in profit: stop to break-even (no loss after costs),
+    - from +trail_start_r R: stop trails trail_r R behind the best price reached.
+    The stop only ever tightens. R is the initial risk per unit."""
+    tr = cfg["execution"].get("trailing")
+    p = state["positions"].get(sym)
+    if not tr or p is None or not p.get("initial_risk"):
+        return
+    long_ = p["qty"] > 0
+    r_unit = p["initial_risk"] / abs(p["qty"])
+    best = max(p.get("best", p["entry_price"]), bar["High"]) if long_ else min(p.get("best", p["entry_price"]), bar["Low"])
+    p["best"] = best
+    gained = (best - p["entry_price"]) / r_unit if long_ else (p["entry_price"] - best) / r_unit
+    new = None
+    if gained >= tr.get("breakeven_r", 99):
+        new = stop_for_profit(cfg, p, 0.01)
+    if gained >= tr.get("trail_start_r", 99):
+        trail = best - tr["trail_r"] * r_unit if long_ else best + tr["trail_r"] * r_unit
+        new = max(new, trail) if long_ else min(new, trail)
+    if new is None:
+        return
+    tighter = new > p["stop"] if long_ else new < p["stop"]
+    if tighter and ((new < bar["Close"]) if long_ else (new > bar["Close"])):
+        log_event(state, ts, f"Stop {sym} nachgezogen {fmt_px(p['stop'])} -> {fmt_px(new)} (+{gained:.2f} R)")
+        p["stop"] = round(new, 6)
+
+
 def _manage_position(state, sym, bar, ts, cfg):
     p = state["positions"][sym]
     req = p.get("close_requested")
@@ -242,6 +270,7 @@ def process_bars(state, cfg, bars, now: datetime):
                     # The fill bar may also hit the stop (conservative); targets wait a bar.
             if sym in state["positions"]:
                 _manage_position(state, sym, bar, ts_iso, cfg)
+                _trail(state, sym, bar, ts_iso, cfg)
             if sym in state["positions"]:   # worst price of the bar for this position's side
                 lows[sym] = bar["Low"] if state["positions"][sym]["qty"] > 0 else bar["High"]
 
