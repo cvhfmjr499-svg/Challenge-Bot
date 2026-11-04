@@ -18,7 +18,7 @@ def _rsi(c, n=2):
     return 100 - 100 / (1 + up / dn.replace(0, np.nan))
 
 
-def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5, short=False, symbols=None):
+def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5, short=False, symbols=None, trend_rsi=40, trend_gap_pct=0.3):
     now = datetime.now(timezone.utc)
     rows = []
     for sym in symbols or CRYPTO:
@@ -32,9 +32,13 @@ def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5, short=False, symbols=None):
         atr = tr.rolling(14).mean().iloc[-1]
         ema50, r2, close = c.ewm(span=50).mean().iloc[-1], _rsi(c).iloc[-1], c.iloc[-1]
         # Long: dip in a short-term uptrend. Short (mirror): pop in a short-term downtrend.
-        if close > ema50 and r2 < rsi_max:
+        # In a strong trend (price trend_gap_pct away from the EMA) a smaller pullback is enough.
+        gap = (close / ema50 - 1) * 100
+        long_lim = trend_rsi if gap >= trend_gap_pct else rsi_max
+        short_lim = trend_rsi if gap <= -trend_gap_pct else rsi_max
+        if close > ema50 and r2 < long_lim:
             side, sign, extreme = "long", 1, r2
-        elif short and close < ema50 and r2 > 100 - rsi_max:
+        elif short and close < ema50 and r2 > 100 - short_lim:
             side, sign, extreme = "short", -1, 100 - r2
         else:
             continue
