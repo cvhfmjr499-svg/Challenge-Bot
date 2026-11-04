@@ -54,6 +54,14 @@
   .price { font: 500 26px var(--font-num); font-variant-numeric: tabular-nums; }
   .price small { font-size: 13px; color: var(--muted); margin-left: 6px; }
   .chart-wrap { position: relative; }
+  .minis { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+  .mini { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px 4px; display: grid; gap: 4px; min-width: 0;
+          background: transparent; color: var(--fg); text-align: left; font: inherit; cursor: pointer; }
+  .mini:hover, .mini:focus-visible { border-color: var(--accent); outline: none; }
+  .mini-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; font-family: var(--font-num); }
+  .mini-head b { font-size: 14px; }
+  .mini-sub { font: 11px var(--font-num); color: var(--muted); }
+  .mini-chart { height: 150px; width: 100%; }
   #rsi { height: 110px; width: 100%; border-top: 1px solid var(--line); }
   #rsi[hidden] { display: none; }
   .rsi-label { position: absolute; left: 8px; top: 4px; font: 11px var(--font-num); color: var(--muted); z-index: 3; pointer-events: none; }
@@ -171,6 +179,12 @@
       </section>
     </div>
   </div>
+
+  <section class="card" aria-label="Alle offenen Positionen" id="minis-card" hidden>
+    <h2>Alle offenen Positionen</h2>
+    <div class="minis" id="minis"></div>
+    <p class="note">1-Minuten-Kerzen, live. Antippen öffnet die Position im großen Chart.</p>
+  </section>
 
   <section class="card" aria-label="Abgeschlossene Trades">
     <h2>Abgeschlossene Trades</h2>
@@ -372,6 +386,8 @@ async function loadCandles(focus) {
   const want = symbol;
   try {
     const all = await (await fetch(DATA + 'candles.json?t=' + Date.now(), { cache: 'no-store' })).json();
+    allCandles = all;
+    renderMinis();
     if (want !== symbol) return;
     history = (all[want] || []).map((b) => ({ ...b }));
     if (!isCrypto(want)) live = live.filter((b) => b.time > (history.at(-1)?.time ?? 0));
@@ -547,7 +563,7 @@ function yahooConnect() {
     if (!d.id || !d.price) return;
     lastPrice[d.id] = d.price;
     if (d.id === symbol && !isCrypto(symbol)) yahooTick(d);
-    if (!openThrottle) openThrottle = setTimeout(() => { openThrottle = null; renderOpen(); }, 1000);
+    if (!openThrottle) openThrottle = setTimeout(() => { openThrottle = null; renderOpen(); updateMinis(); }, 1000);
   };
   sock.onclose = () => { if (ysock === sock) { ysock = null; if (symbol && !isCrypto(symbol)) feed(false, 'Yahoo getrennt, verbinde neu…'); setTimeout(yahooConnect, 3000); } };
   sock.onerror = () => sock.close();
@@ -569,6 +585,110 @@ function yahooTick(d) {
   pushLive();
   feed(true, 'Yahoo live');
   setPrice(d.price, 'Yahoo live');
+}
+
+// ---- One small live chart per open position.
+let allCandles = {};
+const minis = new Map();   // symbol -> { el, chart, series, bars, lines, key }
+function miniLevels(m, p) {
+  m.lines.forEach((l) => m.series.removePriceLine(l));
+  const line = (price, color, style) => m.series.createPriceLine({ price, color, lineWidth: 1, lineStyle: style, axisLabelVisible: false });
+  m.lines = [line(p.entry_price, css('--accent'), 0), line(p.stop, css('--down'), 2), line(p.target, css('--up'), 2)];
+}
+function miniText(m, p) {
+  const now = lastPrice[p.symbol] ?? p.last_price, pnl = p.qty * (now - p.entry_price);
+  m.pnl.textContent = signed(pnl);
+  m.pnl.className = pnl >= 0 ? 'pnl-up' : 'pnl-down';
+  m.sub.textContent = `${p.qty < 0 ? 'Short' : 'Long'} ${usd(Math.abs(p.qty) * p.entry_price)} · jetzt ${px(now)} · Stop ${px(p.stop)} · Ziel ${px(p.target)}`;
+}
+function renderMinis() {
+  if (!state) return;
+  const open = state.positions;
+  $('minis-card').hidden = !open.length;
+  for (const [sym, m] of minis) if (!open.find((p) => p.symbol === sym)) { m.chart.remove(); m.el.remove(); minis.delete(sym); }
+  open.forEach((p) => {
+    let m = minis.get(p.symbol);
+    if (!m) {
+      const el = document.createElement('button'); el.type = 'button'; el.className = 'mini';
+      const head = document.createElement('div'); head.className = 'mini-head';
+      const name = document.createElement('b'); name.textContent = p.symbol.replace('SUI20947', 'SUI').replace('-USD', '');
+      const pnl = document.createElement('span');
+      head.append(name, pnl);
+      const sub = document.createElement('div'); sub.className = 'mini-sub';
+      const box = document.createElement('div'); box.className = 'mini-chart';
+      el.append(head, sub, box);
+      el.addEventListener('click', () => { selectSymbol(p.symbol); $('chart').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+      $('minis').append(el);
+      const chart = LightweightCharts.createChart(box, {
+        autoSize: true, handleScroll: false, handleScale: false,
+        layout: { background: { color: 'transparent' }, textColor: css('--muted'), fontFamily: css('--font-num'), fontSize: 10, attributionLogo: false },
+        grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+        rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.1, bottom: 0.1 } },
+        timeScale: { borderVisible: false, timeVisible: true, tickMarkFormatter: (tt) => berlin(tt, { hour: '2-digit', minute: '2-digit' }) },
+        localization: { locale: 'de-DE', priceFormatter: px },
+        crosshair: { mode: 1 },
+      });
+      const series = chart.addCandlestickSeries({ upColor: css('--up'), downColor: css('--down'), wickUpColor: css('--up'),
+        wickDownColor: css('--down'), borderVisible: false, priceLineVisible: false });
+      m = { el, chart, series, bars: [], lines: [], key: '', pnl, sub };
+      minis.set(p.symbol, m);
+    }
+    // History: the last 90 one-minute candles; reloaded with the candle file every minute.
+    const hist = (allCandles[p.symbol] || []).slice(-90).map((b) => ({ ...b }));
+    const key = `${hist.length}:${hist.at(-1)?.time}`;
+    if (key !== m.key && hist.length) {
+      const liveTail = m.bars.filter((b) => b.time > hist.at(-1).time);
+      m.bars = [...hist, ...liveTail];
+      m.series.setData(m.bars);
+      m.chart.timeScale().fitContent();
+      m.key = key;
+    }
+    // Levels from the entry candle on, so the stop and target stay in view.
+    m.series.applyOptions({ autoscaleInfoProvider: (orig) => {
+      const r = orig(); if (!r) return r;
+      return { ...r, priceRange: { minValue: Math.min(r.priceRange.minValue, p.stop, p.target, p.entry_price),
+                                     maxValue: Math.max(r.priceRange.maxValue, p.stop, p.target, p.entry_price) } };
+    } });
+    miniLevels(m, p);
+    miniText(m, p);
+  });
+}
+function updateMinis() {
+  // Live price -> current 1-minute candle of each mini chart.
+  if (!state) return;
+  const tm = Math.floor(Date.now() / 60000) * 60;
+  state.positions.forEach((p) => {
+    const m = minis.get(p.symbol), pr = lastPrice[p.symbol];
+    if (!m || pr == null) return;
+    const last = m.bars.at(-1);
+    if (last && last.time === tm) { last.high = Math.max(last.high, pr); last.low = Math.min(last.low, pr); last.close = pr; m.series.update(last); }
+    else if (!last || tm > last.time) { const b = { time: tm, open: last ? last.close : pr, high: pr, low: pr, close: pr }; m.bars.push(b); m.series.update(b); }
+    miniText(m, p);
+  });
+}
+// Kraken ticker for every open crypto position (the big chart only streams its own symbol).
+let ktick = null, kSubs = '';
+function krakenTickers() {
+  const pairs = state ? [...new Set(state.positions.map((p) => p.symbol).filter(isCrypto))].map(krakenPair).sort() : [];
+  if (pairs.join() === kSubs && ktick && ktick.readyState <= 1) return;
+  if (ktick) { const old = ktick; ktick = null; try { old.close(); } catch (e) {} }
+  kSubs = pairs.join();
+  if (!pairs.length) return;
+  const sock = new WebSocket('wss://ws.kraken.com/v2');
+  ktick = sock;
+  sock.onopen = () => sock.send(JSON.stringify({ method: 'subscribe', params: { channel: 'ticker', symbol: pairs } }));
+  sock.onmessage = (ev) => {
+    if (ktick !== sock) return;
+    const msg = JSON.parse(ev.data);
+    if (msg.channel !== 'ticker' || !Array.isArray(msg.data)) return;
+    msg.data.forEach((d) => {
+      const sym = d.symbol.replace('/USD', '-USD').replace(/^SUI-USD$/, 'SUI20947-USD');
+      if (d.last) lastPrice[sym] = +d.last;
+    });
+    if (!openThrottle) openThrottle = setTimeout(() => { openThrottle = null; renderOpen(); updateMinis(); }, 1000);
+  };
+  sock.onclose = () => { if (ktick === sock) { ktick = null; kSubs = ''; setTimeout(krakenTickers, 3000); } };
+  sock.onerror = () => sock.close();
 }
 
 function feed(ok, text) { $('feed-dot').className = 'dot ' + (ok ? 'live' : ''); $('feed').textContent = text; }
@@ -727,7 +847,7 @@ async function pollState() {
   try {
     state = await (await fetch(DATA + 'state.json?t=' + Date.now(), { cache: 'no-store' })).json();
     const first = !symbol;
-    renderTabs(); renderOpen(); renderLog(); renderHistory(); drawLevels(); yahooConnect();
+    renderTabs(); renderOpen(); renderLog(); renderHistory(); drawLevels(); yahooConnect(); krakenTickers(); renderMinis();
     if (first) { connectFeed(); loadCandles(true); }
   } catch (e) {
     $('bot-dot').className = 'dot bad'; $('bot').textContent = 'Daten nicht erreichbar';
