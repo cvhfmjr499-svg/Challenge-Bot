@@ -1,3 +1,4 @@
+import pathlib
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -353,3 +354,20 @@ def test_trailing_works_for_shorts(short_cfg, state):
                                         (96.8, 99.5, 96.7, 99.4)])})
     t = state["closed_trades"][0]
     assert t["exit_reason"] == "Stop" and t["pnl"] > 0
+
+
+def test_cli_places_short_order(tmp_path):
+    """The command line must pass the side through (a positional mix-up once turned shorts into longs)."""
+    import os, subprocess, sys, yaml
+    cfg = load_config()
+    cfg["execution"].update({"allow_short": True, "leverage": 5})
+    cfg["challenge"]["max_drawdown_pct"] = 100
+    cfg["aggressive"]["enabled"] = False
+    (tmp_path / "c.yaml").write_text(yaml.safe_dump(cfg))
+    env = {**os.environ, "BOT_STATE": str(tmp_path / "s.json"), "BOT_CONFIG": str(tmp_path / "c.yaml")}
+    root = pathlib.Path(__file__).resolve().parent.parent
+    run_ = lambda *a: subprocess.run([sys.executable, "-m", "bot", *a], cwd=root, env=env, capture_output=True, text=True)
+    run_("init")
+    out = run_("propose", "AAA", "--type", "limit", "--entry", "100", "--stop", "102", "--target", "94",
+               "--side", "short", "--dry-run").stdout
+    assert '"approved": true' in out and '"qty": -' in out

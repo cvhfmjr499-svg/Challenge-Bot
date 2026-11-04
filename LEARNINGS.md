@@ -58,8 +58,9 @@ und mit einer breiteren Aktienliste, danach Paper-Handel mit normalem Risiko.
 Ausführung kosten rund ein Viertel des Risikos (daher −1,26 R statt −1 R). Passt zum Rückblick-Test vom 30.10.
 → Stop jetzt mindestens 0,6 % vom Einstieg (`bot/dips.py`, `config_free.yaml`).
 
-**Abgelehnter PLTR-Short:** Der Kurs lag beim Platzieren schon über dem geplanten Stop (veraltetes Signal).
-Die Ablehnung durch den Risiko-Wächter war richtig.
+**Abgelehnter PLTR-Short (korrigiert):** Ursache war ein Fehler im Bot, nicht ein veraltetes Signal. Die Befehlszeile
+übergab die Seite (long/short) an der falschen Stelle, dadurch wurde jeder Short als ungültiger Long abgelehnt.
+Behoben, mit Test über die Befehlszeile (`test_cli_places_short_order`).
 
 **Aufgefallen (SOL-Rally 15:30):** Die Rücksetzer-Regel steigt in steile Anstiege nicht ein, weil RSI(2) nie unter 25 fällt.
 → Trend-Rücksetzer ergänzt: bei Kurs ≥ 0,3 % über/unter EMA 50 reicht RSI(2) < 40 bzw. > 60. Noch nicht im Rückblick getestet.
