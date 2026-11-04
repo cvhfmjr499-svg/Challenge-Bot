@@ -189,6 +189,11 @@ def cmd_tick(args, cfg):
     print(f"{state['status']} Equity {equity(state):.2f} $  Positionen {len(state['positions'])}  Orders {len(state['orders'])}")
 
 
+def cmd_web_export(args, cfg):
+    """Write the phone page files for the current account without settling (read-only)."""
+    export.export_web(_load(), cfg, Path(args.out))
+
+
 def cmd_export(args, cfg):
     state = _load()
     counts = export.export(state, cfg, Path(args.out), now_utc().isoformat())
@@ -231,6 +236,8 @@ def main():
     p.set_defaults(f=cmd_live)
     p = sub.add_parser("tick", help="Ein Abrechnungsschritt + Daten für die Handy-Seite")
     p.add_argument("--out", default="docs/data"); p.set_defaults(f=cmd_tick)
+    p = sub.add_parser("web-export"); p.add_argument("--out", default="docs/data")
+    p.set_defaults(f=cmd_web_export)
     p = sub.add_parser("export"); p.add_argument("--out", default="data/dashboard")
     p.set_defaults(f=cmd_export)
     args = ap.parse_args()

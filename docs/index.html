@@ -83,7 +83,7 @@
 <div class="wrap">
   <header>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <h1>Challenge-Bot Live</h1>
+      <h1 id="title">Challenge-Bot Live</h1>
       <span class="pill" id="phase">–</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -196,7 +196,7 @@ async function loadCandles(focus) {
   if (!symbol) return;
   const want = symbol;
   try {
-    const all = await (await fetch('data/candles.json?t=' + Date.now(), { cache: 'no-store' })).json();
+    const all = await (await fetch(DATA + 'candles.json?t=' + Date.now(), { cache: 'no-store' })).json();
     if (want !== symbol) return;
     history = (all[want] || []).map((b) => ({ ...b }));
     rebuild(focus);
@@ -321,6 +321,11 @@ function renderStats() {
   $('bot').textContent = last ? 'Bot abgerechnet ' + hhmm(last) + (stale ? ' (verzögert)' : '') : 'Bot: noch kein Lauf';
 }
 
+// ?konto=test shows the free test account (no challenge rules, no sell buttons).
+const TEST = new URLSearchParams(location.search).get('konto') === 'test';
+const DATA = TEST ? 'test/data/' : 'data/';
+if (TEST) { document.getElementById('title').textContent = 'Test-Konto Live'; document.title = 'Test-Konto Live'; }
+
 // Sell / cancel: opens a prefilled GitHub issue. A workflow runs it, but only for the repo owner.
 const REPO = 'cvhfmjr499-svg/Challenge-Bot';
 function actionLink(label, title) {
@@ -353,7 +358,7 @@ function renderOpen() {
       const n = document.createElement('span'); n.className = 'act-note'; n.textContent = 'Verkauf angefordert, wird zur nächsten Minute ausgeführt';
       el.append(n);
     } else {
-      el.append(actionLink('Verkaufen', `VERKAUFEN ${p.symbol}`));
+      if (!TEST) el.append(actionLink('Verkaufen', `VERKAUFEN ${p.symbol}`));
     }
     items.push(el);
   });
@@ -365,7 +370,8 @@ function renderOpen() {
     top.append(a, b);
     const sub = document.createElement('div'); sub.className = 'pos-sub';
     sub.textContent = `${o.qty} @ ${px(o.entry)} · Stop ${px(o.stop)} · Ziel ${px(o.target)} · Risiko ${usd(o.planned_risk)}`;
-    el.append(top, sub, actionLink('Stornieren', `STORNIEREN ${o.id} ${o.symbol}`));
+    el.append(top, sub);
+    if (!TEST) el.append(actionLink('Stornieren', `STORNIEREN ${o.id} ${o.symbol}`));
     items.push(el);
   });
   if (!items.length) { const e = document.createElement('p'); e.className = 'empty'; e.textContent = 'Keine offene Position und keine wartende Order.'; items.push(e); }
@@ -410,7 +416,7 @@ function toast(text) {
 
 async function pollState() {
   try {
-    state = await (await fetch('data/state.json?t=' + Date.now(), { cache: 'no-store' })).json();
+    state = await (await fetch(DATA + 'state.json?t=' + Date.now(), { cache: 'no-store' })).json();
     const first = !symbol;
     renderTabs(); renderOpen(); renderLog(); renderHistory(); drawLevels();
     if (first) { connectFeed(); loadCandles(true); }
