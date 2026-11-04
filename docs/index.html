@@ -52,11 +52,27 @@
   .tabs button:focus-visible, .tabs button:hover { border-color: var(--accent); }
   .price { font: 500 26px var(--font-num); font-variant-numeric: tabular-nums; }
   .price small { font-size: 13px; color: var(--muted); margin-left: 6px; }
-  #chart { height: 460px; width: 100%; }
-  @media (max-width: 600px) { #chart { height: 340px; } }
+  .chart-wrap { position: relative; }
+  #chart { height: 470px; width: 100%; }
+  @media (max-width: 600px) { #chart { height: 380px; } }
+  .tf { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .tf button { font: 500 12px var(--font-num); background: transparent; color: var(--muted); border: 0; padding: 4px 10px; cursor: pointer; }
+  .tf button[aria-pressed="true"] { background: var(--line); color: var(--fg); }
+  .tf button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .quote { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+  .quote .sym { font: 600 15px var(--font-ui); }
+  .quote .chg { font: 500 13px var(--font-num); }
+  .badge { font: 500 12px var(--font-num); padding: 3px 8px; border-radius: 999px; border: 1px solid currentColor; }
+  .ohlc { position: absolute; top: 6px; left: 8px; max-width: calc(100% - 96px); z-index: 3; pointer-events: none; font: 11px var(--font-num);
+          color: var(--muted); background: color-mix(in srgb, var(--panel) 80%, transparent); padding: 2px 6px; border-radius: 4px; }
+  .ohlc b { color: var(--fg); font-weight: 500; }
+  .zone { display: inline-block; width: 12px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  .zone-up { background: color-mix(in srgb, var(--up) 30%, transparent); }
+  .zone-down { background: color-mix(in srgb, var(--down) 30%, transparent); }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); }
   .legend i { display: inline-block; width: 16px; border-top: 2px dashed currentColor; vertical-align: middle; margin-right: 6px; }
-  .k-entry { color: var(--accent); } .k-stop { color: var(--down); } .k-target { color: var(--up); }
+  .k-entry { color: var(--accent); }
+  .k-entry i { border-top-style: solid; } .k-stop { color: var(--down); } .k-target { color: var(--up); }
   .pos { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; display: grid; gap: 4px; font-size: 13px; }
   .pos-top { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-num); }
   .pos-sub { color: var(--muted); font-size: 12px; font-family: var(--font-num); }
@@ -103,12 +119,21 @@
     <section class="card" aria-label="Chart">
       <div class="chart-head">
         <div class="tabs" id="tabs" role="group" aria-label="Symbol wählen"></div>
-        <div class="price"><span id="price">–</span><small id="price-src">1-Min-Kerzen</small></div>
+        <div class="tf" id="tf" role="group" aria-label="Zeitfenster">
+          <button type="button" data-tf="1" aria-pressed="true">1m</button>
+          <button type="button" data-tf="5" aria-pressed="false">5m</button>
+          <button type="button" data-tf="15" aria-pressed="false">15m</button>
+        </div>
       </div>
-      <div id="chart"></div>
+      <div class="quote">
+        <div><span class="sym" id="sym">–</span> <span class="price"><span id="price">–</span></span> <span class="chg" id="chg"></span></div>
+        <span class="badge" id="pos-badge" hidden></span>
+      </div>
+      <div class="chart-wrap"><div id="chart"></div><div class="ohlc" id="ohlc" hidden></div></div>
       <div class="legend">
-        <span class="k-entry"><i></i>Einstieg</span><span class="k-stop"><i></i>Stop</span><span class="k-target"><i></i>Ziel</span>
-        <span>▲ Kauf &nbsp; ▼ Verkauf</span>
+        <span><i class="zone zone-up"></i>Gewinnzone bis Ziel</span><span><i class="zone zone-down"></i>Verlustzone bis Stop</span>
+        <span class="k-entry"><i></i>Einstieg</span><span>▲ Kauf ▼ Verkauf</span>
+        <small id="price-src"></small>
       </div>
       <p class="note">Krypto: 1-Minuten-Kerzen live von Kraken. Aktien: 1-Minuten-Kerzen von Yahoo Finance, alle 5 Minuten neu. Der Bot rechnet Orders, Stops und Ziele alle 5 Minuten minutengenau ab.</p>
     </section>
@@ -151,20 +176,34 @@ const isCrypto = (s) => s.endsWith('-USD');
 const krakenPair = (s) => s.replace('SUI20947', 'SUI').replace('-USD', '/USD');
 const minute = (iso) => Math.floor(Date.parse(iso) / 60000) * 60;
 
-let state = null, symbol = null, lastPrice = {}, seenEvents = null, lines = [], bars = [], levels = [];
+let state = null, symbol = null, lastPrice = {}, seenEvents = null, lines = [], bars = [], levels = [], tf = 1;
 
 // ---- chart
 const chart = LightweightCharts.createChart($('chart'), {
   autoSize: true,
   layout: { background: { color: 'transparent' }, textColor: css('--muted'), fontFamily: css('--font-num') },
-  grid: { vertLines: { color: css('--line') }, horzLines: { color: css('--line') } },
-  rightPriceScale: { borderColor: css('--line') },
+  grid: { vertLines: { visible: false }, horzLines: { color: css('--line') } },
+  rightPriceScale: { borderColor: css('--line'), scaleMargins: { top: 0.12, bottom: 0.08 } },
   timeScale: { borderColor: css('--line'), timeVisible: true, secondsVisible: false,
     tickMarkFormatter: (t) => berlin(t, { hour: '2-digit', minute: '2-digit' }) },
   localization: { locale: 'de-DE', timeFormatter: (t) => berlin(t, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), priceFormatter: px },
-  crosshair: { mode: 0 },
+  crosshair: { mode: 1 },
 });
+// Zones are baseline series drawn behind the candles: green from entry up to the target,
+// red from entry down to the stop. They also keep both levels inside the visible range.
+const zoneOpts = { lineWidth: 1, lineVisible: false, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false };
+const profitZone = chart.addBaselineSeries({ ...zoneOpts });
+const riskZone = chart.addBaselineSeries({ ...zoneOpts });
+function zoneColors() {
+  const a = (v, p) => `color-mix(in srgb, ${css(v)} ${p}%, transparent)`;
+  profitZone.applyOptions({ topFillColor1: a('--up', 26), topFillColor2: a('--up', 8), topLineColor: 'transparent',
+    bottomFillColor1: 'transparent', bottomFillColor2: 'transparent', bottomLineColor: 'transparent' });
+  riskZone.applyOptions({ bottomFillColor1: a('--down', 8), bottomFillColor2: a('--down', 26), bottomLineColor: 'transparent',
+    topFillColor1: 'transparent', topFillColor2: 'transparent', topLineColor: 'transparent' });
+}
+zoneColors();
 const series = chart.addCandlestickSeries({
+  priceLineStyle: 1, priceLineWidth: 1,
   upColor: css('--up'), downColor: css('--down'), wickUpColor: css('--up'), wickDownColor: css('--down'), borderVisible: false,
   // Keep entry, stop and target inside the visible price range.
   autoscaleInfoProvider: (original) => {
@@ -179,19 +218,47 @@ const series = chart.addCandlestickSeries({
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   chart.applyOptions({ layout: { textColor: css('--muted') }, grid: { vertLines: { color: css('--line') }, horzLines: { color: css('--line') } } });
   series.applyOptions({ upColor: css('--up'), downColor: css('--down'), wickUpColor: css('--up'), wickDownColor: css('--down') });
+  zoneColors();
   drawLevels();
 });
 
 // History comes from the exported Yahoo candles; for crypto, Kraken's live candles replace
 // the overlapping minutes and everything after them.
 let krakenLive = false, history = [], live = [];
+// 1-minute bars are the base; 5m/15m are built from them in the browser.
+function aggregate(base, minutes) {
+  if (minutes === 1) return base.map((b) => ({ ...b }));
+  const out = [], step = minutes * 60;
+  base.forEach((b) => {
+    const t = Math.floor(b.time / step) * step, last = out.at(-1);
+    if (last && last.time === t) { last.high = Math.max(last.high, b.high); last.low = Math.min(last.low, b.low); last.close = b.close; }
+    else out.push({ time: t, open: b.open, high: b.high, low: b.low, close: b.close });
+  });
+  return out;
+}
+let view = [];
 function rebuild(focus) {
   const cut = live.length ? live[0].time : Infinity;
   bars = [...history.filter((b) => b.time < cut), ...live];
-  series.setData(bars);
+  view = aggregate(bars, tf);
+  series.setData(view);
   drawLevels();
-  if (focus && bars.length) chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, bars.length - 120), to: bars.length + 3 });
+  updateQuote();
+  if (focus && view.length) chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, view.length - 90), to: view.length + 4 });
 }
+function pushLive() {
+  const b = aggregate(bars.slice(-tf * 2), tf).at(-1);
+  if (b && (!view.length || b.time >= view.at(-1).time)) {
+    if (view.length && view.at(-1).time === b.time) view[view.length - 1] = b; else view.push(b);
+    series.update(b);
+    updateZones();
+  }
+}
+document.querySelectorAll('#tf button').forEach((btn) => btn.addEventListener('click', () => {
+  tf = +btn.dataset.tf;
+  document.querySelectorAll('#tf button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+  rebuild(true);
+}));
 async function loadCandles(focus) {
   if (!symbol) return;
   const want = symbol;
@@ -207,9 +274,36 @@ async function loadCandles(focus) {
 function setPrice(p, src) {
   lastPrice[symbol] = p;
   $('price').textContent = px(p);
-  $('price-src').textContent = src;
+  $('price-src').textContent = 'Kurs: ' + src;
+  updateQuote();
   renderOpen();
 }
+function updateQuote() {
+  $('sym').textContent = symbol ? symbol.replace('SUI20947', 'SUI').replace('-USD', '/USD') : '–';
+  const first = bars[0], last = bars.at(-1);
+  if (first && last) {
+    const ch = (last.close / first.open - 1) * 100;
+    $('chg').textContent = `${ch >= 0 ? '+' : ''}${ch.toFixed(2).replace('.', ',')} % seit ${berlin(first.time, { hour: '2-digit', minute: '2-digit' })}`;
+    $('chg').className = 'chg ' + (ch >= 0 ? 'pnl-up' : 'pnl-down');
+  }
+  const pos = state && state.positions.find((p) => p.symbol === symbol);
+  const badge = $('pos-badge');
+  badge.hidden = !pos;
+  if (pos) {
+    const now = lastPrice[symbol] ?? pos.last_price, pnl = pos.qty * (now - pos.entry_price);
+    badge.textContent = `Long ${usd(pos.qty * pos.entry_price)} · ${signed(pnl)}`;
+    badge.className = 'badge ' + (pnl >= 0 ? 'pnl-up' : 'pnl-down');
+  }
+}
+chart.subscribeCrosshairMove((param) => {
+  const box = $('ohlc'), d = param.time && param.seriesData.get(series);
+  box.hidden = !d;
+  if (!d) return;
+  const ch = (d.close / d.open - 1) * 100;
+  box.replaceChildren(...[['O', d.open], ['H', d.high], ['T', d.low], ['S', d.close]].flatMap(([k, v]) => {
+    const b = document.createElement('b'); b.textContent = px(v); return [k + ' ', b, '  '];
+  }), `${ch >= 0 ? '+' : ''}${ch.toFixed(2).replace('.', ',')} %`);
+});
 
 function drawLevels() {
   lines.forEach((l) => series.removePriceLine(l));
@@ -217,21 +311,42 @@ function drawLevels() {
   if (!state || !symbol) return;
   const pos = state.positions.find((p) => p.symbol === symbol);
   const ord = state.orders.find((o) => o.symbol === symbol);
-  const add = (price, color, title) => {
+  const add = (price, color, title, style) => {
     if (price == null) return;
     levels.push(price);
-    lines.push(series.createPriceLine({ price, color, lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title }));
+    lines.push(series.createPriceLine({ price, color, lineWidth: 1, lineStyle: style, axisLabelVisible: true, title }));
   };
-  if (pos) { add(pos.entry_price, css('--accent'), 'Einstieg'); add(pos.stop, css('--down'), 'Stop'); add(pos.target, css('--up'), 'Ziel'); }
-  else if (ord) { add(ord.entry, css('--accent'), 'Order ' + ord.type); add(ord.stop, css('--down'), 'Stop'); add(ord.target, css('--up'), 'Ziel'); }
+  const plan = pos ? { entry: pos.entry_price, stop: pos.stop, target: pos.target, label: 'Einstieg', from: minute(pos.entry_ts) }
+    : ord ? { entry: ord.entry, stop: ord.stop, target: ord.target, label: 'Order', from: minute(ord.created_at) } : null;
+  zone = plan;
+  if (plan) {
+    add(plan.entry, css('--accent'), plan.label, 0);
+    add(plan.stop, css('--down'), 'Stop', 2);
+    add(plan.target, css('--up'), 'Ziel', 2);
+  }
+  updateZones();
+  const bucket = (iso) => Math.floor(minute(iso) / (tf * 60)) * tf * 60;
   const marks = [];
   state.trades.filter((t) => t.symbol === symbol).forEach((t) => {
-    marks.push({ time: minute(t.entry_ts), position: 'belowBar', color: css('--accent'), shape: 'arrowUp', text: 'Kauf' });
-    marks.push({ time: minute(t.exit_ts), position: 'aboveBar', color: t.pnl >= 0 ? css('--up') : css('--down'), shape: 'arrowDown', text: (t.pnl >= 0 ? '+' : '') + t.pnl.toFixed(2) + ' $' });
+    marks.push({ time: bucket(t.entry_ts), position: 'belowBar', color: css('--accent'), shape: 'arrowUp', size: 1 });
+    marks.push({ time: bucket(t.exit_ts), position: 'aboveBar', color: t.pnl >= 0 ? css('--up') : css('--down'), shape: 'arrowDown', size: 1,
+                 text: (t.pnl >= 0 ? '+' : '') + t.pnl.toFixed(2).replace('.', ',') });
   });
-  if (pos) marks.push({ time: minute(pos.entry_ts), position: 'belowBar', color: css('--accent'), shape: 'arrowUp', text: 'Kauf' });
-  const first = bars[0]?.time ?? 0;
+  if (pos) marks.push({ time: bucket(pos.entry_ts), position: 'belowBar', color: css('--accent'), shape: 'arrowUp', size: 1 });
+  const first = view[0]?.time ?? 0;
   series.setMarkers(marks.filter((m) => m.time >= first).sort((a, b) => a.time - b.time));
+}
+let zone = null;
+function updateZones() {
+  if (!zone || !view.length) { profitZone.setData([]); riskZone.setData([]); return; }
+  const base = { type: 'price', price: zone.entry };
+  profitZone.applyOptions({ baseValue: base });
+  riskZone.applyOptions({ baseValue: base });
+  // Zones start at the candle of the entry (or of the order), not at the left edge.
+  const from = Math.floor(zone.from / (tf * 60)) * tf * 60;
+  const span = view.filter((b) => b.time >= from);
+  profitZone.setData(span.map((b) => ({ time: b.time, value: zone.target })));
+  riskZone.setData(span.map((b) => ({ time: b.time, value: zone.stop })));
 }
 
 // ---- Kraken live 1-minute candles for crypto (snapshot of recent candles, then every trade)
@@ -263,7 +378,7 @@ function connectFeed() {
         if (last && r.time < last.time) return;
         if (last && r.time === last.time) { bars[bars.length - 1] = r; live[live.length - 1] = r; }
         else { bars.push(r); live.push(r); }
-        series.update(r);
+        pushLive();
       });
     }
     setPrice(bars.at(-1).close, 'Kraken live');
@@ -297,8 +412,8 @@ function renderTabs() {
 
 function selectSymbol(s) {
   if (s === symbol) return;
-  symbol = s; bars = []; history = []; live = [];
-  series.setData([]);
+  symbol = s; bars = []; history = []; live = []; view = []; zone = null;
+  series.setData([]); profitZone.setData([]); riskZone.setData([]);
   $('price').textContent = '–';
   renderTabs(); connectFeed(); loadCandles(true);
 }
