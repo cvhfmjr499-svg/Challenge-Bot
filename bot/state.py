@@ -58,6 +58,13 @@ def equity(state, prices=None):
     )
 
 
+def buying_power(state, cfg):
+    """Free buying power: leverage x equity minus the value of open positions (cash may go negative)."""
+    lev = float(cfg.get("execution", {}).get("leverage", 1))
+    invested = sum(p["qty"] * p["last_price"] for p in state["positions"].values())
+    return lev * equity(state) - invested if lev > 1 else state["cash"]
+
+
 def fmt_px(x):
     """Price for display: 0.01 above 100 $, finer for cheap coins (DOGE, SUI)."""
     x = float(x)

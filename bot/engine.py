@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from . import risk
 from .assets import is_crypto
 from .config import TRADING, floor_equity, goal_equity, target_equity
-from .state import NY, equity, fmt_px, log_event
+from .state import NY, buying_power, equity, fmt_px, log_event
 
 BAR = timedelta(minutes=5)
 
@@ -119,7 +119,7 @@ def _fill_order(state, o, bar, ts, cfg):
         return False
     price *= 1 + cfg["execution"].get("spread_pct", 0) / 100
     cost = o["qty"] * price
-    if cost > state["cash"] + 1e-9:
+    if cost > buying_power(state, cfg) + 1e-9:
         log_event(state, ts, f"Order #{o['id']} {o['symbol']} storniert: nicht genug Cash.")
         return True
     state["cash"] -= cost

@@ -273,3 +273,14 @@ def test_manual_close_uses_only_candles_after_request(cfg, state):
     t = state["closed_trades"][0]
     assert t["exit_reason"] == "manuell" and t["exit_ts"] == (T0 + timedelta(minutes=10)).isoformat()
     assert t["exit_price"] == 100.3
+
+
+def test_leverage_allows_bigger_positions(cfg, state):
+    cfg["execution"]["leverage"] = 5
+    cfg["risk"].update({"risk_per_trade_pct": 50, "max_room_fraction": 1, "max_position_pct": 100})
+    cfg["challenge"]["max_drawdown_pct"] = 100
+    d = risk.evaluate(cfg, state, risk.Proposal("AAA", 100, 98, 106), T0.isoformat())
+    assert d.approved and d.qty * 100 > 1000          # more than the account without leverage
+    place(cfg, state, typ="market")
+    run(cfg, state, {"AAA": bars([(100, 100.5, 99.9, 100.2)])})
+    assert state["positions"]["AAA"]["qty"] * 100 > 1000 and state["cash"] < 0

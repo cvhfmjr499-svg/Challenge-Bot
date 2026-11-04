@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 from .assets import is_crypto
 from .config import TRADING, floor_equity, risk_params, start_balance, target_equity
-from .state import equity, ny_date
+from .state import buying_power, equity, ny_date
 
 
 @dataclass
@@ -116,7 +116,8 @@ def evaluate(cfg, state, prop: Proposal, now_iso):
     # Risk per share includes the worst allowed entry slippage.
     per_share = per_share_risk(cfg, prop.entry, prop.stop)
     qty = budget / per_share
-    max_notional = min(eq * r["max_position_pct"] / 100, state["cash"])
+    lev = float(cfg["execution"].get("leverage", 1))
+    max_notional = min(eq * lev * r["max_position_pct"] / 100, buying_power(state, cfg))
     if qty * prop.entry * (1 + slip) > max_notional:
         qty = max_notional / (prop.entry * (1 + slip))
         notes.append("Größe durch Positions-/Cash-Limit begrenzt.")
