@@ -20,7 +20,7 @@ s = json.load(open(os.environ["BOT_STATE"]))
 busy = set(s["positions"]) | {o["symbol"] for o in s["orders"]}
 # With leverage cash can go negative; what matters is the free buying power after waiting orders.
 free = buying_power(s, load_config()) - sum(abs(o["qty"]) * o["entry"] for o in s["orders"])
-slots = 10 - len(busy)
+slots = 25 - len(busy)
 # Stocks only while the US session is open (09:35-15:30 New York), crypto always.
 ny = datetime.now(ZoneInfo("America/New_York"))
 symbols = CRYPTO + (STOCKS if ny.weekday() < 5 and (9, 35) <= (ny.hour, ny.minute) < (15, 30) else [])
