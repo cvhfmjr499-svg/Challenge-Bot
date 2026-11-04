@@ -97,6 +97,7 @@ def live_payload(state, cfg):
         "events": state["events"][-40:],
         "event_count": len(state["events"]),
         "symbols": chart_symbols(state),
+        "start": float(cfg["challenge"]["start_balance"]),
         "last_tick": state.get("last_tick"),
     }
 
@@ -107,7 +108,8 @@ def candles_1m(symbols, keep=390):
         df = yf.Ticker(sym).history(period="2d", interval="1m", prepost=False).dropna().tail(keep)
         out[sym] = [{"time": int(ts.timestamp()), "open": round(float(b["Open"]), 6),
                      "high": round(float(b["High"]), 6), "low": round(float(b["Low"]), 6),
-                     "close": round(float(b["Close"]), 6)} for ts, b in df.iterrows()]
+                     "close": round(float(b["Close"]), 6), "volume": round(float(b.get("Volume", 0) or 0), 2)}
+                    for ts, b in df.iterrows()]
     return out
 
 

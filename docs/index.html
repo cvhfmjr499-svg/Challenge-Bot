@@ -40,7 +40,8 @@
   .stats { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); }
   .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: grid; gap: 2px; }
   .stat span { font-size: 12px; color: var(--muted); }
-  .stat b { font: 500 22px/1.2 var(--font-num); font-variant-numeric: tabular-nums; }
+  .stat { min-width: 0; }
+  .stat b { font: 500 22px/1.2 var(--font-num); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   .main { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
   @media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; min-width: 0; display: grid; gap: 10px; }
@@ -53,6 +54,20 @@
   .price { font: 500 26px var(--font-num); font-variant-numeric: tabular-nums; }
   .price small { font-size: 13px; color: var(--muted); margin-left: 6px; }
   .chart-wrap { position: relative; }
+  #rsi { height: 110px; width: 100%; border-top: 1px solid var(--line); }
+  #rsi[hidden] { display: none; }
+  .rsi-label { position: absolute; left: 8px; top: 4px; font: 11px var(--font-num); color: var(--muted); z-index: 3; pointer-events: none; }
+  .tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .chip { font: 500 12px var(--font-ui); border: 1px solid var(--line); background: transparent; color: var(--muted);
+          border-radius: 999px; padding: 3px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .chip[aria-pressed="true"] { color: var(--fg); border-color: color-mix(in srgb, var(--fg) 35%, var(--line)); }
+  .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .chip .sw { width: 10px; height: 3px; border-radius: 2px; }
+  .card.fs { position: fixed; inset: 0; z-index: 40; border-radius: 0; overflow: auto;
+             padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px));
+             padding-top: calc(12px + env(safe-area-inset-top, 0px)); padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .card.fs #chart { height: calc(100dvh - 330px); min-height: 260px; }
+  .card.fs .note, .card.fs .legend { display: none; }
   #chart { height: 470px; width: 100%; }
   @media (max-width: 600px) { #chart { height: 380px; } }
   .tf { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
@@ -110,9 +125,9 @@
 
   <section class="stats" aria-label="Konto">
     <div class="stat"><span>Kontostand (live)</span><b id="s-equity">–</b></div>
-    <div class="stat"><span>Bis zum Ziel</span><b id="s-goal">–</b></div>
-    <div class="stat"><span>Abstand zur Verlustgrenze</span><b id="s-head">–</b></div>
-    <div class="stat"><span>Freier Risiko-Puffer</span><b id="s-room">–</b></div>
+    <div class="stat"><span id="l-goal">Bis zum Ziel</span><b id="s-goal">–</b></div>
+    <div class="stat"><span id="l-head">Abstand zur Verlustgrenze</span><b id="s-head">–</b></div>
+    <div class="stat"><span id="l-room">Freier Risiko-Puffer</span><b id="s-room">–</b></div>
   </section>
 
   <div class="main">
@@ -129,7 +144,14 @@
         <div><span class="sym" id="sym">–</span> <span class="price"><span id="price">–</span></span> <span class="chg" id="chg"></span></div>
         <span class="badge" id="pos-badge" hidden></span>
       </div>
+      <div class="tools" role="group" aria-label="Anzeigen">
+        <button type="button" class="chip" id="t-ema" aria-pressed="true"><span class="sw" style="background:var(--warn)"></span>EMA 50</button>
+        <button type="button" class="chip" id="t-vol" aria-pressed="true"><span class="sw" style="background:var(--muted)"></span>Volumen</button>
+        <button type="button" class="chip" id="t-rsi" aria-pressed="true"><span class="sw" style="background:var(--accent)"></span>RSI 2</button>
+        <button type="button" class="chip" id="t-fs" aria-pressed="false">⤢ Vollbild</button>
+      </div>
       <div class="chart-wrap"><div id="chart"></div><div class="ohlc" id="ohlc" hidden></div></div>
+      <div class="chart-wrap"><span class="rsi-label" id="rsi-label">RSI 2</span><div id="rsi"></div></div>
       <div class="legend">
         <span><i class="zone zone-up"></i>Gewinnzone bis Ziel</span><span><i class="zone zone-down"></i>Verlustzone bis Stop</span>
         <span class="k-entry"><i></i>Einstieg</span><span>▲ Kauf ▼ Verkauf</span>
@@ -166,6 +188,10 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const alpha = (v, pct) => {
+  const h = css(v).replace('#', ''), n = parseInt(h.length === 3 ? h.replace(/./g, '$&$&') : h, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${pct / 100})`;
+};
 const usd = (v) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD' }).format(v);
 const signed = (v) => { const r = Math.round(v * 100) / 100 || 0; return (r > 0 ? '+' : '') + usd(r); };
 const px = (v) => { const a = Math.abs(v); return new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: a >= 100 ? 2 : a >= 1 ? 4 : 6 }).format(v); };
@@ -183,7 +209,7 @@ const chart = LightweightCharts.createChart($('chart'), {
   autoSize: true,
   layout: { background: { color: 'transparent' }, textColor: css('--muted'), fontFamily: css('--font-num') },
   grid: { vertLines: { visible: false }, horzLines: { color: css('--line') } },
-  rightPriceScale: { borderColor: css('--line'), scaleMargins: { top: 0.12, bottom: 0.08 } },
+  rightPriceScale: { borderColor: css('--line'), scaleMargins: { top: 0.1, bottom: 0.22 }, minimumWidth: 78 },
   timeScale: { borderColor: css('--line'), timeVisible: true, secondsVisible: false,
     tickMarkFormatter: (t) => berlin(t, { hour: '2-digit', minute: '2-digit' }) },
   localization: { locale: 'de-DE', timeFormatter: (t) => berlin(t, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), priceFormatter: px },
@@ -195,7 +221,7 @@ const zoneOpts = { lineWidth: 1, lineVisible: false, priceLineVisible: false, la
 const profitZone = chart.addBaselineSeries({ ...zoneOpts });
 const riskZone = chart.addBaselineSeries({ ...zoneOpts });
 function zoneColors() {
-  const a = (v, p) => `color-mix(in srgb, ${css(v)} ${p}%, transparent)`;
+  const a = alpha;
   profitZone.applyOptions({ topFillColor1: a('--up', 26), topFillColor2: a('--up', 8), topLineColor: 'transparent',
     bottomFillColor1: 'transparent', bottomFillColor2: 'transparent', bottomLineColor: 'transparent' });
   riskZone.applyOptions({ bottomFillColor1: a('--down', 8), bottomFillColor2: a('--down', 26), bottomLineColor: 'transparent',
@@ -215,10 +241,90 @@ const series = chart.addCandlestickSeries({
     } };
   },
 });
+// Indicators: volume at the bottom of the price pane, EMA 50 (the bot's trend filter) as a line,
+// RSI(2) (the bot's entry trigger) in its own pane below, with the buy zone under 25 and the short zone over 75.
+const volSeries = chart.addHistogramSeries({ priceScaleId: 'vol', priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false });
+chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+const emaSeries = chart.addLineSeries({ lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+const rsiChart = LightweightCharts.createChart($('rsi'), {
+  autoSize: true,
+  grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+  rightPriceScale: { borderColor: css('--line'), scaleMargins: { top: 0.12, bottom: 0.08 }, minimumWidth: 78 },
+  timeScale: { visible: false },
+  crosshair: { mode: 1, horzLine: { visible: false } },
+  localization: { locale: 'de-DE', priceFormatter: (v) => v.toFixed(0) },
+  layout: { background: { color: 'transparent' }, textColor: css('--muted'), fontFamily: css('--font-num'), attributionLogo: false },
+});
+const rsiSeries = rsiChart.addLineSeries({ lineWidth: 2, priceLineVisible: false, crosshairMarkerVisible: false,
+  autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }) });
+const rsiLines = [];
+function indicatorColors() {
+  emaSeries.applyOptions({ color: css('--warn') });
+  rsiSeries.applyOptions({ color: css('--accent') });
+  rsiLines.forEach((l) => rsiSeries.removePriceLine(l));
+  rsiLines.length = 0;
+  rsiLines.push(rsiSeries.createPriceLine({ price: 25, color: css('--up'), lineWidth: 1, lineStyle: 2, axisLabelVisible: false }));
+  rsiLines.push(rsiSeries.createPriceLine({ price: 75, color: css('--down'), lineWidth: 1, lineStyle: 2, axisLabelVisible: false }));
+  rsiChart.applyOptions({ layout: { textColor: css('--muted') }, rightPriceScale: { borderColor: css('--line') } });
+}
+indicatorColors();
+// Keep both panes on the same time range.
+let syncing = false;
+const sync = (from, to) => (r) => { if (!r || syncing) return; syncing = true; to.timeScale().setVisibleLogicalRange(r); syncing = false; };
+chart.timeScale().subscribeVisibleLogicalRangeChange(sync(chart, rsiChart));
+rsiChart.timeScale().subscribeVisibleLogicalRangeChange(sync(rsiChart, chart));
+
+function ema(values, n) {
+  const k = 2 / (n + 1); let e;
+  return values.map((v, i) => (e = i ? v * k + e * (1 - k) : v));
+}
+function rsi2(closes) {
+  let up = 0, dn = 0;
+  return closes.map((c, i) => {
+    if (!i) return null;
+    const d = c - closes[i - 1];
+    up = (up + Math.max(d, 0)) / 2; dn = (dn + Math.max(-d, 0)) / 2;   // Wilder smoothing, n = 2
+    return dn === 0 ? 100 : 100 - 100 / (1 + up / dn);
+  });
+}
+const show = { ema: true, vol: true, rsi: true };
+try { Object.assign(show, JSON.parse(localStorage.getItem('chart-show') || '{}')); } catch (e) { /* defaults */ }
+function drawIndicators() {
+  if (!view.length) { volSeries.setData([]); emaSeries.setData([]); rsiSeries.setData([]); return; }
+  const a = alpha;
+  volSeries.setData(show.vol ? view.map((b) => ({ time: b.time, value: b.volume || 0, color: a(b.close >= b.open ? '--up' : '--down', 35) })) : []);
+  const e = ema(view.map((b) => b.close), 50);
+  emaSeries.setData(show.ema ? view.map((b, i) => ({ time: b.time, value: e[i] })) : []);
+  const r = rsi2(view.map((b) => b.close));
+  rsiSeries.setData(view.map((b, i) => (r[i] == null ? { time: b.time } : { time: b.time, value: r[i] })));
+  const last = r.at(-1);
+  $('rsi-label').textContent = last == null ? 'RSI 2' : `RSI 2  ${last.toFixed(0)}` + (last < 25 ? ' · Long-Signal' : last > 75 ? ' · Short-Signal' : '');
+}
+let indTimer = null;
+function drawIndicatorsSoon() { if (!indTimer) indTimer = setTimeout(() => { indTimer = null; drawIndicators(); }, 1000); }
+function applyToggles() {
+  for (const k of ['ema', 'vol', 'rsi']) $('t-' + k).setAttribute('aria-pressed', String(show[k]));
+  $('rsi').hidden = !show.rsi; $('rsi-label').hidden = !show.rsi;
+  drawIndicators();
+  try { localStorage.setItem('chart-show', JSON.stringify(show)); } catch (e) { /* not stored */ }
+}
+for (const k of ['ema', 'vol', 'rsi']) $('t-' + k).addEventListener('click', () => { show[k] = !show[k]; applyToggles(); });
+const card = $('chart').closest('.card');
+function setFullscreen(on) {
+  card.classList.toggle('fs', on);
+  $('t-fs').setAttribute('aria-pressed', String(on));
+  $('t-fs').textContent = on ? '✕ Schließen' : '⤢ Vollbild';
+  document.body.style.overflow = on ? 'hidden' : '';
+}
+$('t-fs').addEventListener('click', () => setFullscreen(!card.classList.contains('fs')));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setFullscreen(false); });
+
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   chart.applyOptions({ layout: { textColor: css('--muted') }, grid: { vertLines: { color: css('--line') }, horzLines: { color: css('--line') } } });
   series.applyOptions({ upColor: css('--up'), downColor: css('--down'), wickUpColor: css('--up'), wickDownColor: css('--down') });
   zoneColors();
+  indicatorColors();
+  drawIndicators();
   drawLevels();
 });
 
@@ -231,8 +337,8 @@ function aggregate(base, minutes) {
   const out = [], step = minutes * 60;
   base.forEach((b) => {
     const t = Math.floor(b.time / step) * step, last = out.at(-1);
-    if (last && last.time === t) { last.high = Math.max(last.high, b.high); last.low = Math.min(last.low, b.low); last.close = b.close; }
-    else out.push({ time: t, open: b.open, high: b.high, low: b.low, close: b.close });
+    if (last && last.time === t) { last.high = Math.max(last.high, b.high); last.low = Math.min(last.low, b.low); last.close = b.close; last.volume = (last.volume || 0) + (b.volume || 0); }
+    else out.push({ time: t, open: b.open, high: b.high, low: b.low, close: b.close, volume: b.volume || 0 });
   });
   return out;
 }
@@ -242,6 +348,7 @@ function rebuild(focus) {
   bars = [...history.filter((b) => b.time < cut), ...live];
   view = aggregate(bars, tf);
   series.setData(view);
+  drawIndicators();
   drawLevels();
   updateQuote();
   if (focus && view.length) chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, view.length - 90), to: view.length + 4 });
@@ -252,6 +359,7 @@ function pushLive() {
     if (view.length && view.at(-1).time === b.time) view[view.length - 1] = b; else view.push(b);
     series.update(b);
     updateZones();
+    drawIndicatorsSoon();
   }
 }
 document.querySelectorAll('#tf button').forEach((btn) => btn.addEventListener('click', () => {
@@ -344,7 +452,7 @@ function updateZones() {
   if (!zone || !view.length) { profitZone.setData([]); riskZone.setData([]); return; }
   const base = { type: 'price', price: zone.entry };
   // Long: profit above the entry, risk below. Short: the other way round.
-  const a = (v, p) => `color-mix(in srgb, ${css(v)} ${p}%, transparent)`, none = 'transparent';
+  const a = alpha, none = 'transparent';
   const up = zone.target > zone.entry;
   profitZone.applyOptions({ baseValue: base,
     topFillColor1: up ? a('--up', 26) : none, topFillColor2: up ? a('--up', 8) : none,
@@ -374,7 +482,7 @@ function connectFeed() {
     const msg = JSON.parse(ev.data);
     if (msg.channel !== 'ohlc' || !Array.isArray(msg.data)) return;
     const rows = msg.data.filter((d) => d.symbol === wsPair).map((d) => ({
-      time: Math.floor(Date.parse(d.interval_begin) / 1000), open: +d.open, high: +d.high, low: +d.low, close: +d.close,
+      time: Math.floor(Date.parse(d.interval_begin) / 1000), open: +d.open, high: +d.high, low: +d.low, close: +d.close, volume: +d.volume || 0,
     }));
     if (!rows.length) return;
     feed(true, 'Kraken live');
@@ -423,7 +531,7 @@ function renderTabs() {
 function selectSymbol(s) {
   if (s === symbol) return;
   symbol = s; bars = []; history = []; live = []; view = []; zone = null;
-  series.setData([]); profitZone.setData([]); riskZone.setData([]);
+  series.setData([]); profitZone.setData([]); riskZone.setData([]); volSeries.setData([]); emaSeries.setData([]); rsiSeries.setData([]);
   $('price').textContent = '–';
   renderTabs(); connectFeed(); loadCandles(true);
 }
@@ -436,9 +544,18 @@ function renderStats() {
   const eq = liveEquity();
   $('phase').textContent = state.phase;
   $('s-equity').textContent = usd(eq);
-  $('s-goal').textContent = usd(state.goal - eq);
-  $('s-head').textContent = usd(eq - state.floor);
-  $('s-room').textContent = usd(state.room);
+  if (TEST) {
+    // The test account has no challenge goal or loss line: show result, trades and open positions.
+    const res = eq - (state.start || 1000), wins = state.trades.filter((t) => t.pnl > 0).length;
+    $('l-goal').textContent = 'Ergebnis seit Start'; $('s-goal').textContent = signed(res);
+    $('s-goal').className = res >= 0 ? 'pnl-up' : 'pnl-down';
+    $('l-head').textContent = 'Trades (davon Gewinner)'; $('s-head').textContent = `${state.trades.length} (${wins})`;
+    $('l-room').textContent = 'Offen'; $('s-room').textContent = `${state.positions.length} Pos. · ${state.orders.length} Order`;
+  } else {
+    $('s-goal').textContent = usd(state.goal - eq);
+    $('s-head').textContent = usd(eq - state.floor);
+    $('s-room').textContent = usd(state.room);
+  }
   // The bot settles every 5 minutes (GitHub) or every minute (PC); older than 20 minutes is a warning.
   const last = state.last_tick;
   const stale = !last || Date.now() - Date.parse(last) > 20 * 60000;
@@ -550,6 +667,7 @@ async function pollState() {
   }
 }
 
+applyToggles();
 pollState();
 setInterval(pollState, 30000);
 setInterval(() => loadCandles(false), 60000);
