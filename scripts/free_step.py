@@ -22,8 +22,9 @@ from bot.config import load_config  # noqa: E402
 from bot.intraday import CRYPTO, STOCKS  # noqa: E402
 from bot.state import buying_power  # noqa: E402
 
-# Entry rules from the 7.11. review (LEARNINGS.md): only extreme pullbacks, no loosened trend entries.
-SCAN = {"rsi_max": 10, "trend_rsi": 10, "short": True, "target_atr": 6.0, "min_stop_pct": 1.2}
+# Entry rules from the 7.11. review (LEARNINGS.md): extreme pullbacks only (15 instead of 10 for more trades),
+# no loosened trend entries.
+SCAN = {"rsi_max": 15, "trend_rsi": 15, "short": True, "target_atr": 6.0, "min_stop_pct": 1.2}
 SLOTS = 25
 
 
