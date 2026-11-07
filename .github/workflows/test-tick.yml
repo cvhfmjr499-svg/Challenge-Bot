@@ -1,0 +1,45 @@
+name: Test-Konto alle 5 Minuten
+
+# Free test account (config_free.yaml, data/free/state.json). Change TEST_UNTIL to set the end (Berlin time);
+# after it the step only closes what is still open.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: test-tick
+  cancel-in-progress: false
+
+env:
+  TEST_UNTIL: "2026-11-08 11:00"
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -q pyyaml requests pandas numpy yfinance
+      - name: Handeln, abrechnen, Handy-Daten schreiben
+        run: |
+          git config user.name "Challenge Bot (GitHub)"
+          git config user.email "bot@local"
+          for attempt in 1 2 3; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            python scripts/free_step.py --until "$TEST_UNTIL"
+            BOT_STATE=data/free/state.json BOT_CONFIG=config_free.yaml python -m bot web-export --out docs/test/data
+            git add data/free docs/test/data
+            git diff --cached --quiet && exit 0
+            git commit -q -m "Test-Konto: Lauf (GitHub, alle 5 Min)"
+            git push -q origin main && exit 0
+            sleep 5
+          done
+          exit 1

@@ -64,3 +64,25 @@ Behoben, mit Test über die Befehlszeile (`test_cli_places_short_order`).
 
 **Aufgefallen (SOL-Rally 15:30):** Die Rücksetzer-Regel steigt in steile Anstiege nicht ein, weil RSI(2) nie unter 25 fällt.
 → Trend-Rücksetzer ergänzt: bei Kurs ≥ 0,3 % über/unter EMA 50 reicht RSI(2) < 40 bzw. > 60. Noch nicht im Rückblick getestet.
+
+## 07.11.2026 – Auswertung der 17 Test-Trades vom 4.11. (Ergebnis −47,78 $)
+
+| Einstieg | Trades | Ergebnis |
+|---|---|---|
+| RSI(2) 37–43 (gelockert für „mehr Trades“) | 5 | **alle im Minus**: AMD −33,32, ANET −33,46, SUI −13,58, XRP −11,05, AMZN −0,34 |
+| RSI(2) unter 25 (tiefer Rücksetzer) | 9 | netto im Plus (COIN +20,59, AVAX +5,67, …; SOL −10,80 wegen zu engem Stop) |
+| Ausstieg bei ±0 durch Break-even ab +0,3 R | 5 | QQQ, ANET, MSFT, TSLA: Trades beendet, bevor sie laufen konnten |
+
+**Rückblick-Test Krypto, 7 Tage, 5-Min-Kerzen** (`scripts/backtest_crypto_dips.py`):
+
+| Schwelle | Long | Short |
+|---|---|---|
+| RSI(2) < 10 bzw. > 90 | −0,26 R, 192 Trades | −0,15 R, 210 Trades |
+| RSI(2) < 25 bzw. > 75 | −0,24 R, 587 Trades | −0,18 R, 685 Trades |
+| RSI(2) < 40 bzw. > 60 | −0,23 R, 1.013 Trades (Summe −66 %) | −0,23 R, 1.126 Trades (Summe −87 %) |
+
+**Erkenntnisse:**
+1. Lockerere Einstiege bringen mehr Trades und vor allem mehr Verlust. „Viele Trades“ und „keine Verluste“ widersprechen sich.
+2. Zurück zu extremen Rücksetzern: RSI(2) < 10 / > 90, keine gelockerten Trend-Einstiege.
+3. Break-even erst ab +0,6 R (statt 0,3 R), Nachziehen ab +1 R mit 0,6 R Abstand.
+4. Auch so ist die Strategie im Rückblick nach Kosten im Minus; der Test zeigt, wie viel.

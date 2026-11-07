@@ -3,4 +3,3 @@ __pycache__/
 .pytest_cache/
 data/*.tmp
 backtest_intraday.csv
-data/free/

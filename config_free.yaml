@@ -27,9 +27,9 @@ execution:
   leverage: 10
   allow_short: true
   trailing:
-    breakeven_r: 0.3
-    trail_start_r: 0.6
-    trail_r: 0.5
+    breakeven_r: 0.6
+    trail_start_r: 1.0
+    trail_r: 0.6
 funded:
   goal_equity: 10000
   risk:
