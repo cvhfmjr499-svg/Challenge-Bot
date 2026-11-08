@@ -26,6 +26,7 @@ from bot.state import buying_power  # noqa: E402
 # no loosened trend entries.
 SCAN = {"rsi_max": 15, "trend_rsi": 15, "short": True, "target_atr": 6.0, "min_stop_pct": 2.5}
 SLOTS = 25
+MAX_CRYPTO_SAME_SIDE = 2
 
 
 def bot(*args):
@@ -62,7 +63,20 @@ def main():
     ny = datetime.now(ZoneInfo("America/New_York"))
     stocks_open = ny.weekday() < 5 and (9, 35) <= (ny.hour, ny.minute) < (15, 30)
     symbols = CRYPTO + (STOCKS if stocks_open else [])
-    for c in [c for c in dips.scan(symbols=symbols, **SCAN) if c["symbol"] not in busy][:slots]:
+    # Crypto coins move together: at most MAX_CRYPTO_SAME_SIDE crypto trades in one direction
+    # (8.11.: BTC, AVAX and SOL long all fell at once, -65 $).
+    sides = [("short" if p["qty"] < 0 else "long") for s, p in state["positions"].items() if s.endswith("-USD")]
+    sides += [("short" if o["qty"] < 0 else "long") for o in state["orders"] if o["symbol"].endswith("-USD")]
+    picks = []
+    for c in dips.scan(symbols=symbols, **SCAN):
+        if c["symbol"] in busy:
+            continue
+        if c["symbol"].endswith("-USD"):
+            if sides.count(c["side"]) >= MAX_CRYPTO_SAME_SIDE:
+                continue
+            sides.append(c["side"])
+        picks.append(c)
+    for c in picks[:slots]:
         side = "über" if c["side"] == "long" else "unter"
         r = bot("propose", c["symbol"], "--type", "market", "--side", c["side"], "--stop", str(c["stop"]),
                 "--target", str(c["target"]), "--expires-min", "10",

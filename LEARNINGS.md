@@ -95,3 +95,9 @@ Behoben, mit Test über die Befehlszeile (`test_cli_places_short_order`).
   Rechner oder Server) prüft jede Minute.
 - **Zielkonflikt bestätigt:** Mindestrisiko 80 $ + strenge Einstiege (RSI2 < 15 / > 85) + Wochenende (nur Krypto)
   ergeben sehr wenige Trades. Viele Trades gehen nur mit lockereren Regeln, und die verlieren laut Rückblick mehr.
+
+## 08.11.2026 abends – Krypto-Klumpenrisiko
+
+BTC, AVAX und SOL waren gleichzeitig Long und fielen gemeinsam (zusammen −65 $). Krypto-Coins laufen fast immer zusammen,
+drei Long-Trades sind praktisch ein dreifacher Einsatz auf dieselbe Richtung.
+→ Höchstens 2 Krypto-Trades in dieselbe Richtung (`scripts/free_step.py`, `MAX_CRYPTO_SAME_SIDE`).
