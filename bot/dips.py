@@ -47,7 +47,8 @@ def scan(rsi_max=10, stop_atr=2.0, target_atr=1.5, short=False, symbols=None, tr
         # (SOL 4.11.: 0.34 % stop, out after 3 minutes, -1.26 R). So the stop is at least that far.
         dist = max(stop_atr * atr, close * min_stop_pct / 100)
         rows.append({"symbol": sym, "side": side, "close": _px(close), "stop": _px(close - sign * dist),
-                     "target": _px(close + sign * target_atr * atr), "rsi2": round(float(r2), 1),
+                     # The target scales with the (possibly widened) stop, so reward/risk stays >= 3.
+                     "target": _px(close + sign * max(target_atr * atr, 3 * dist)), "rsi2": round(float(r2), 1),
                      "extreme": round(float(extreme), 1), "atr_pct": round(float(atr / close * 100), 2)})
     rows.sort(key=lambda r: r["extreme"])
     return rows
