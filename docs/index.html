@@ -156,6 +156,7 @@
         <button type="button" class="chip" id="t-ema" aria-pressed="true"><span class="sw" style="background:var(--warn)"></span>EMA 50</button>
         <button type="button" class="chip" id="t-vol" aria-pressed="true"><span class="sw" style="background:var(--muted)"></span>Volumen</button>
         <button type="button" class="chip" id="t-rsi" aria-pressed="true"><span class="sw" style="background:var(--accent)"></span>RSI 2</button>
+        <button type="button" class="chip" id="t-lvl" aria-pressed="false"><span class="sw" style="background:var(--down)"></span>Stop/Ziel</button>
         <button type="button" class="chip" id="t-fs" aria-pressed="false">⤢ Vollbild</button>
       </div>
       <div class="chart-wrap"><div id="chart"></div><div class="ohlc" id="ohlc" hidden></div></div>
@@ -286,15 +287,16 @@ const chart = LightweightCharts.createChart($('chart'), {
   autoSize: true,
   layout: { background: { color: 'transparent' }, textColor: css('--muted'), fontFamily: css('--font-num') },
   grid: { vertLines: { visible: false }, horzLines: { color: css('--line') } },
-  rightPriceScale: { borderColor: css('--line'), scaleMargins: { top: 0.1, bottom: 0.22 }, minimumWidth: 78 },
+  rightPriceScale: { borderColor: css('--line'), scaleMargins: { top: 0.1, bottom: 0.22 }, minimumWidth: 96 },
   timeScale: { borderColor: css('--line'), timeVisible: true, secondsVisible: false,
     tickMarkFormatter: (t) => berlin(t, { hour: '2-digit', minute: '2-digit' }) },
   localization: { locale: 'de-DE', timeFormatter: (t) => berlin(t, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), priceFormatter: px },
   crosshair: { mode: 1 },
 });
 // Zones are baseline series drawn behind the candles: green from entry up to the target,
-// red from entry down to the stop. They also keep both levels inside the visible range.
-const zoneOpts = { lineWidth: 1, lineVisible: false, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false };
+// red from entry down to the stop. They never drive the zoom: far stops would squash the candles.
+const zoneOpts = { lineWidth: 1, lineVisible: false, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+  autoscaleInfoProvider: () => null };
 const profitZone = chart.addBaselineSeries({ ...zoneOpts });
 const riskZone = chart.addBaselineSeries({ ...zoneOpts });
 function zoneColors() {
@@ -326,7 +328,7 @@ const emaSeries = chart.addLineSeries({ lineWidth: 2, priceLineVisible: false, l
 const rsiChart = LightweightCharts.createChart($('rsi'), {
   autoSize: true,
   grid: { vertLines: { visible: false }, horzLines: { visible: false } },
-  rightPriceScale: { borderColor: css('--line'), scaleMargins: { top: 0.12, bottom: 0.08 }, minimumWidth: 78 },
+  rightPriceScale: { borderColor: css('--line'), scaleMargins: { top: 0.12, bottom: 0.08 }, minimumWidth: 96 },
   timeScale: { visible: false },
   crosshair: { mode: 1, horzLine: { visible: false } },
   localization: { locale: 'de-DE', priceFormatter: (v) => v.toFixed(0) },
@@ -364,7 +366,7 @@ function rsi2(closes) {
     return dn === 0 ? 100 : 100 - 100 / (1 + up / dn);
   });
 }
-const show = { ema: true, vol: true, rsi: true };
+const show = { ema: true, vol: true, rsi: true, lvl: false };
 try { Object.assign(show, JSON.parse(localStorage.getItem('chart-show') || '{}')); } catch (e) { /* defaults */ }
 function drawIndicators() {
   if (!view.length) { volSeries.setData([]); emaSeries.setData([]); rsiSeries.setData([]); return; }
@@ -380,12 +382,13 @@ function drawIndicators() {
 let indTimer = null;
 function drawIndicatorsSoon() { if (!indTimer) indTimer = setTimeout(() => { indTimer = null; drawIndicators(); }, 1000); }
 function applyToggles() {
-  for (const k of ['ema', 'vol', 'rsi']) $('t-' + k).setAttribute('aria-pressed', String(show[k]));
+  for (const k of ['ema', 'vol', 'rsi', 'lvl']) $('t-' + k).setAttribute('aria-pressed', String(show[k]));
+  drawLevels(); chart.priceScale('right').applyOptions({ autoScale: true });
   $('rsi').hidden = !show.rsi; $('rsi-label').hidden = !show.rsi;
   drawIndicators();
   try { localStorage.setItem('chart-show', JSON.stringify(show)); } catch (e) { /* not stored */ }
 }
-for (const k of ['ema', 'vol', 'rsi']) $('t-' + k).addEventListener('click', () => { show[k] = !show[k]; applyToggles(); });
+for (const k of ['ema', 'vol', 'rsi', 'lvl']) $('t-' + k).addEventListener('click', () => { show[k] = !show[k]; applyToggles(); });
 const card = $('chart').closest('.card');
 function setFullscreen(on) {
   card.classList.toggle('fs', on);
@@ -479,7 +482,8 @@ function updateQuote() {
   badge.hidden = !pos;
   if (pos) {
     const now = lastPrice[symbol] ?? pos.last_price, pnl = pos.qty * (now - pos.entry_price);
-    badge.textContent = `${pos.qty < 0 ? 'Short' : 'Long'} ${usd(Math.abs(pos.qty) * pos.entry_price)} · ${signed(pnl)}`;
+    const pct = (lvl) => { const v = (lvl / now - 1) * 100; return `${v >= 0 ? '+' : ''}${v.toFixed(1).replace('.', ',')} %`; };
+    badge.textContent = `${pos.qty < 0 ? 'Short' : 'Long'} ${usd(Math.abs(pos.qty) * pos.entry_price)} · ${signed(pnl)} · Stop ${pct(pos.stop)} · Ziel ${pct(pos.target)}`;
     badge.className = 'badge ' + (pnl >= 0 ? 'pnl-up' : 'pnl-down');
   }
 }
@@ -499,16 +503,16 @@ function drawLevels() {
   if (!state || !symbol) return;
   const pos = state.positions.find((p) => p.symbol === symbol);
   const ord = state.orders.find((o) => o.symbol === symbol);
-  const add = (price, color, title, style) => {
+  const add = (price, color, title, style, zoom = show.lvl) => {
     if (price == null) return;
-    levels.push(price);
+    if (zoom) levels.push(price);
     lines.push(series.createPriceLine({ price, color, lineWidth: 1, lineStyle: style, axisLabelVisible: true, title: tr(title) }));
   };
   const plan = pos ? { entry: pos.entry_price, stop: pos.stop, target: pos.target, label: 'Einstieg', from: minute(pos.entry_ts) }
     : ord ? { entry: ord.entry, stop: ord.stop, target: ord.target, label: 'Order', from: minute(ord.created_at) } : null;
   zone = plan;
   if (plan) {
-    add(plan.entry, css('--accent'), plan.label, 0);
+    add(plan.entry, css('--accent'), plan.label, 0, true);
     add(plan.stop, css('--down'), 'Stop', 2);
     add(plan.target, css('--up'), 'Ziel', 2);
   }
