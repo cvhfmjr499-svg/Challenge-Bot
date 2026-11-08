@@ -86,3 +86,12 @@ Behoben, mit Test über die Befehlszeile (`test_cli_places_short_order`).
 2. Zurück zu extremen Rücksetzern: RSI(2) < 10 / > 90, keine gelockerten Trend-Einstiege.
 3. Break-even erst ab +0,6 R (statt 0,3 R), Nachziehen ab +1 R mit 0,6 R Abstand.
 4. Auch so ist die Strategie im Rückblick nach Kosten im Minus; der Test zeigt, wie viel.
+
+## 08.11.2026 – Lauf bei GitHub, 7.11. 23:45 bis 8.11. 11:00 (Start 952,22 $, Ende 950,61 $)
+
+- **Nur 1 Trade:** LINK Short (RSI2 88,6), 8 Stunden gehalten, zum Ende geschlossen: −1,61 $.
+- **GitHub hat statt alle 5 Minuten nur 15-mal in 11 Stunden gestartet** (etwa alle 45–50 Minuten). Geplante Abläufe
+  werden bei GitHub gedrosselt. Für viele Trades reicht das nicht; ein durchgehender Ablauf (z. B. auf einem eigenen
+  Rechner oder Server) prüft jede Minute.
+- **Zielkonflikt bestätigt:** Mindestrisiko 80 $ + strenge Einstiege (RSI2 < 15 / > 85) + Wochenende (nur Krypto)
+  ergeben sehr wenige Trades. Viele Trades gehen nur mit lockereren Regeln, und die verlieren laut Rückblick mehr.
