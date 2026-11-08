@@ -24,7 +24,7 @@ from bot.state import buying_power  # noqa: E402
 
 # Entry rules from the 7.11. review (LEARNINGS.md): extreme pullbacks only (15 instead of 10 for more trades),
 # no loosened trend entries.
-SCAN = {"rsi_max": 15, "trend_rsi": 15, "short": True, "target_atr": 6.0, "min_stop_pct": 1.2}
+SCAN = {"rsi_max": 15, "trend_rsi": 15, "short": True, "target_atr": 6.0, "min_stop_pct": 2.5}
 SLOTS = 25
 
 
