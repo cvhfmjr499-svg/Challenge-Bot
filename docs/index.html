@@ -78,6 +78,16 @@
   .card.fs .note, .card.fs .legend { display: none; }
   #chart { height: 470px; width: 100%; }
   @media (max-width: 600px) { #chart { height: 380px; } }
+  [hidden] { display: none !important; }
+  /* Laptop/desktop: chart fills the window height, side column stays visible while scrolling. */
+  @media (min-width: 981px) {
+    #chart { height: clamp(470px, calc(100vh - 430px), 1000px); }
+    .side { position: sticky; top: 16px; }
+    .log { max-height: max(330px, calc(100vh - 330px)); }
+  }
+  .keys { display: none; font-size: 11px; color: var(--muted); }
+  .keys kbd { font: 500 11px var(--font-num); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+  @media (hover: hover) and (pointer: fine) and (min-width: 981px) { .keys { display: block; } }
   .tf { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
   .tf button { font: 500 12px var(--font-num); background: transparent; color: var(--muted); border: 0; padding: 4px 10px; cursor: pointer; }
   .tf button[aria-pressed="true"] { background: var(--line); color: var(--fg); }
@@ -166,10 +176,11 @@
         <span class="k-entry"><i></i>Einstieg</span><span>▲ Kauf ▼ Verkauf</span>
         <small id="price-src"></small>
       </div>
+      <p class="keys">Tasten: <kbd>←</kbd> <kbd>→</kbd> Symbol · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> Zeitfenster 1m/5m/15m · <kbd>F</kbd> Vollbild · <kbd>E</kbd> EMA · <kbd>V</kbd> Volumen · <kbd>R</kbd> RSI · <kbd>S</kbd> Stop/Ziel</p>
       <p class="note">Live-Kurse im Sekundentakt: Krypto von Kraken, Aktien vom Yahoo-Live-Stream (während der US-Handelszeit). Gewinn und Verlust offener Positionen laufen live mit. Der Bot rechnet Orders, Stops und Ziele minutengenau ab.</p>
     </section>
 
-    <div style="display:grid;gap:14px;min-width:0">
+    <div class="side" style="display:grid;gap:14px;min-width:0">
       <section class="card" aria-label="Offene Positionen und Orders">
         <h2>Offen</h2>
         <div id="open" style="display:grid;gap:8px"></div>
@@ -397,7 +408,22 @@ function setFullscreen(on) {
   document.body.style.overflow = on ? 'hidden' : '';
 }
 $('t-fs').addEventListener('click', () => setFullscreen(!card.classList.contains('fs')));
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setFullscreen(false); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') return setFullscreen(false);
+  if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  const k = e.key.toLowerCase();
+  if (k === 'arrowleft' || k === 'arrowright') {
+    const syms = [...document.querySelectorAll('#tabs button')].map((b) => b.dataset.sym);
+    const i = syms.indexOf(symbol);
+    if (syms.length) { selectSymbol(syms[(i + (k === 'arrowright' ? 1 : -1) + syms.length) % syms.length]); e.preventDefault(); }
+  } else if ('123'.includes(k) && k.length === 1) {
+    document.querySelectorAll('#tf button')[+k - 1]?.click();
+  } else if (k === 'f') {
+    setFullscreen(!card.classList.contains('fs'));
+  } else if ({ e: 'ema', v: 'vol', r: 'rsi', s: 'lvl' }[k]) {
+    $('t-' + { e: 'ema', v: 'vol', r: 'rsi', s: 'lvl' }[k]).click();
+  }
+});
 
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   chart.applyOptions({ layout: { textColor: css('--muted') }, grid: { vertLines: { color: css('--line') }, horzLines: { color: css('--line') } } });
