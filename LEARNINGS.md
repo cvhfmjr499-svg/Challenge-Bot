@@ -101,3 +101,19 @@ Behoben, mit Test über die Befehlszeile (`test_cli_places_short_order`).
 BTC, AVAX und SOL waren gleichzeitig Long und fielen gemeinsam (zusammen −65 $). Krypto-Coins laufen fast immer zusammen,
 drei Long-Trades sind praktisch ein dreifacher Einsatz auf dieselbe Richtung.
 → Höchstens 2 Krypto-Trades in dieselbe Richtung (`scripts/free_step.py`, `MAX_CRYPTO_SAME_SIDE`).
+
+## 09.11.2026 – Lauf So 14:38 bis Mo 11:00 (Start 950,61 $, Ende 746,02 $)
+
+| Trade | Ergebnis |
+|---|---|
+| AVAX, SOL, BTC Long (gleichzeitig) | −93,31 / −79,42 / −85,71 $ – innerhalb von 4 Minuten ausgestoppt |
+| SUI Short | +42,40 $ (Hoch zwischendurch +71 $) |
+| XRP Short | +28,15 $ (Hoch zwischendurch +64 $) |
+| ETH Short, SOL Long | −3,04 / −13,48 $ (zum Ende geschlossen) |
+
+**Erkenntnisse:**
+1. Das Klumpenrisiko war der größte Fehler (−258 $ in 4 Minuten). Die Regel „max. 2 Krypto-Trades pro Richtung“ kam
+   eine Stunde zu spät für diese drei Trades.
+2. Der Nachzieh-Stop hat bei den Gewinnern viel zurückgegeben (SUI +71 → +42, XRP +64 → +28): Bei 2,5 % Stop ist
+   1 R groß, 0,6 R Abstand also fast 1,5 % Kurs. Nächster Versuch: Abstand in % des Kurses statt in R.
+3. Mindestrisiko 80 $ + 10x Hebel: drei Verlierer kosten über 25 % des Kontos. Für ein 1.000-$-Konto zu viel.
