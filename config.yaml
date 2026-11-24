@@ -13,16 +13,16 @@ challenge:
   trailing_locks_at_start: false
 
 risk:
-  risk_per_trade_pct: 0.75     # max. 7,50 $ Verlust pro Trade
+  risk_per_trade_pct: 0.4      # 24.11.: Nutzer will viele Trades -> ca. 4 $ pro Trade, damit der Puffer mehr Trades trägt
   max_room_fraction: 0.5       # nie mehr als die Hälfte des Restpuffers auf einen Trade
   protect_fraction: 0.8        # offene Stops dürfen zusammen max. 80 % des Puffers kosten
   min_reward_risk: 3.0         # Ziel mindestens 3x so weit weg wie der Stop
-  max_open_positions: 2        # offene Positionen + wartende Orders
-  max_crypto_positions: 1      # Krypto läuft fast immer gleich: max. 1 Krypto-Trade
+  max_open_positions: 3        # offene Positionen + wartende Orders
+  max_crypto_positions: 3      # 24.11.: mehr Trades; protect_fraction begrenzt das Gesamtrisiko
   max_position_pct: 60         # max. 60 % des Kontos in einer Position
   min_stop_pct: 0.5
   max_stop_pct: 6
-  pause_after_losses: 2        # nach 2 Verlusten in Folge: Rest des Tages Pause
+  pause_after_losses: 4        # nach 4 Verlusten in Folge: Rest des Tages Pause
   daily_loss_limit_pct: 1.5    # nach 15 $ Tagesverlust: Rest des Tages Pause
   allow_fractional: true
 

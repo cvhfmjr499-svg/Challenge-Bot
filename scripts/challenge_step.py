@@ -20,8 +20,9 @@ sys.path.insert(0, str(ROOT))
 from bot import dips  # noqa: E402
 from bot.intraday import CRYPTO  # noqa: E402
 
-# Crypto only, long only, extreme pullbacks only (LEARNINGS.md: looser rules = more trades, more loss).
-SCAN = {"rsi_max": 10, "trend_rsi": 10, "short": False, "target_atr": 6.0, "min_stop_pct": 1.5}
+# Crypto only, long only. 24.11.: the user wants as many trades as possible -> looser pullback rules
+# (LEARNINGS.md: looser rules = more trades, but also more loss), smaller risk per trade in config.yaml.
+SCAN = {"rsi_max": 30, "trend_rsi": 40, "short": False, "target_atr": 6.0, "min_stop_pct": 1.0}
 
 
 def bot(*args):
@@ -55,8 +56,6 @@ def main():
         r = bot("propose", c["symbol"], "--type", "market", "--side", "long", "--stop", str(c["stop"]),
                 "--target", str(c["target"]), "--expires-min", "10", "--reason", f"Long: RSI2 {c['rsi2']}, über EMA50")
         print(c["symbol"], "platziert" if "Order platziert" in r.stdout else "abgelehnt: " + r.stdout.strip()[-160:])
-        if "Order platziert" in r.stdout:
-            break  # max. 1 Krypto-Trade (config.yaml)
 
 
 if __name__ == "__main__":
