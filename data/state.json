@@ -1,53 +1,35 @@
 {
   "status": "ACTIVE",
   "created_at": "2026-10-28T16:03:21.025727+00:00",
-  "cash": 1011.3942519988515,
+  "cash": 486.9030986218629,
   "peak_equity": 1023.1781423500388,
-  "positions": {},
-  "orders": [
-    {
-      "id": 13,
-      "symbol": "DOGE-USD",
-      "type": "market",
-      "entry": 0.06,
-      "stop": 0.059449,
-      "target": 0.061873,
-      "qty": 5003.408,
-      "planned_risk": 4.05,
-      "reason": "Long: RSI2 12.9, \u00fcber EMA50",
-      "created_at": "2026-11-24T17:58:26.343579+00:00",
-      "expires_at": "2026-11-24T18:08:26.343579+00:00",
-      "triggered": false
-    },
-    {
-      "id": 14,
-      "symbol": "BTC-USD",
-      "type": "market",
-      "entry": 60025.16,
+  "positions": {
+    "BTC-USD": {
+      "qty": 0.004,
+      "entry_price": 60087.8263,
       "stop": 59426.62,
       "target": 62060.2,
-      "qty": 0.004,
-      "planned_risk": 3.42,
+      "entry_ts": "2026-11-24T17:59:00+00:00",
+      "last_price": 60051.12890625,
+      "initial_risk": 2.64,
       "reason": "Long: RSI2 19.4, \u00fcber EMA50",
-      "created_at": "2026-11-24T17:58:28.991355+00:00",
-      "expires_at": "2026-11-24T18:08:28.991355+00:00",
-      "triggered": false
+      "close_requested": false,
+      "best": 60087.8263
     },
-    {
-      "id": 15,
-      "symbol": "LINK-USD",
-      "type": "market",
-      "entry": 8.91,
+    "LINK-USD": {
+      "qty": 31.844,
+      "entry_price": 8.9116,
       "stop": 8.8212,
       "target": 9.2119,
-      "qty": 31.844,
-      "planned_risk": 4.05,
+      "entry_ts": "2026-11-24T17:59:00+00:00",
+      "last_price": 8.89900016784668,
+      "initial_risk": 2.88,
       "reason": "Long: RSI2 21.3, \u00fcber EMA50",
-      "created_at": "2026-11-24T17:58:31.503570+00:00",
-      "expires_at": "2026-11-24T18:08:31.503570+00:00",
-      "triggered": false
+      "close_requested": false,
+      "best": 8.9116
     }
-  ],
+  },
+  "orders": [],
   "closed_trades": [
     {
       "symbol": "ETH-USD",
@@ -132,6 +114,18 @@
       "r": 0.0,
       "exit_reason": "Stop",
       "reason": "Long: RSI2 16.6, \u00fcber EMA50"
+    },
+    {
+      "symbol": "DOGE-USD",
+      "qty": 5003.408,
+      "entry_price": 0.0554,
+      "exit_price": 0.0553,
+      "entry_ts": "2026-11-24T17:59:00+00:00",
+      "exit_ts": "2026-11-24T17:59:00+00:00",
+      "pnl": -0.45,
+      "r": 0.02,
+      "exit_reason": "Stop",
+      "reason": "Long: RSI2 12.9, \u00fcber EMA50"
     }
   ],
   "cursor": {
@@ -143,9 +137,9 @@
     "SUI20947-USD": "2026-10-29T08:10:00+00:00",
     "AVGO": "2026-10-29T14:35:00-04:00",
     "CRWD": "2026-10-29T15:24:00-04:00",
-    "DOGE-USD": "2026-11-24T17:57:00+00:00",
-    "BTC-USD": "2026-11-24T17:57:00+00:00",
-    "LINK-USD": "2026-11-24T17:57:00+00:00"
+    "DOGE-USD": "2026-11-24T17:59:00+00:00",
+    "BTC-USD": "2026-11-24T18:00:00+00:00",
+    "LINK-USD": "2026-11-24T18:00:00+00:00"
   },
   "equity_curve": [
     {
@@ -3312,6 +3306,16 @@
       "ts": "2026-11-24T17:58:58.502504+00:00",
       "equity": 1011.39,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-11-24T18:00:05.089179+00:00",
+      "equity": 1010.43,
+      "floor": 970.0
+    },
+    {
+      "ts": "2026-11-24T18:01:08.962629+00:00",
+      "equity": 1010.49,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -3478,8 +3482,24 @@
     {
       "ts": "2026-11-24T17:58:31.503570+00:00",
       "text": "Order #15 LINK-USD market 31.844 @ 8.91 Stop 8.8212 Ziel 9.2119"
+    },
+    {
+      "ts": "2026-11-24T17:59:00+00:00",
+      "text": "FILL BTC-USD 0.004 @ 60087.83"
+    },
+    {
+      "ts": "2026-11-24T17:59:00+00:00",
+      "text": "FILL DOGE-USD 5003.408 @ 0.055382"
+    },
+    {
+      "ts": "2026-11-24T17:59:00+00:00",
+      "text": "EXIT DOGE-USD Stop @ 0.055310  PnL -0.45 $ (+0.02 R)"
+    },
+    {
+      "ts": "2026-11-24T17:59:00+00:00",
+      "text": "FILL LINK-USD 31.844 @ 8.9116"
     }
   ],
   "next_id": 16,
-  "last_tick": "2026-11-24T17:58:51.414115+00:00"
+  "last_tick": "2026-11-24T18:01:08.962629+00:00"
 }
