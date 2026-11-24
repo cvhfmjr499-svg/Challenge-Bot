@@ -31,6 +31,11 @@ execution:
   stop_exit_slippage_pct: 0.05 # Stop-Ausführung etwas schlechter als der Stop
   spread_pct: 0.04             # Kraken: 0,04 % Spread je Seite (Kauf und Verkauf)
   crypto_order_hours: 24       # Krypto-Orders gelten 24 Stunden (Aktien: bis Börsenschluss)
+  # 24.11.: Nutzer will keine Verluste -> Stop früh auf den Einstieg, danach mitziehen.
+  trailing:
+    breakeven_r: 0.5           # ab +0,5 R liegt der Stop auf dem Einstieg
+    trail_start_r: 1.0         # ab +1 R zieht der Stop nach
+    trail_r: 0.5               # Abstand 0,5 R hinter dem Höchstkurs
 
 # Phase 2: nach dem Bestehen (+12 %) wird mit dem Funded-Konto weitergehandelt.
 # Die 970-$-Grenze bleibt laut Kraken bestehen, aber mit wachsendem Konto wird der Puffer größer.
