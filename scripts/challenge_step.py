@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT))
 
 from bot import dips  # noqa: E402
 from bot.intraday import CRYPTO  # noqa: E402
+from bot.scanner import _px  # noqa: E402
 
 # Crypto only, long only. 24.11.: the user wants as many trades as possible -> looser pullback rules
 # (LEARNINGS.md: looser rules = more trades, but also more loss), smaller risk per trade in config.yaml.
@@ -53,9 +54,26 @@ def main():
     for c in dips.scan(symbols=CRYPTO, **SCAN):
         if c["symbol"] in busy or c["side"] != "long":
             continue
-        r = bot("propose", c["symbol"], "--type", "market", "--side", "long", "--stop", str(c["stop"]),
-                "--target", str(c["target"]), "--expires-min", "10", "--reason", f"Long: RSI2 {c['rsi2']}, über EMA50")
-        print(c["symbol"], "platziert" if "Order platziert" in r.stdout else "abgelehnt: " + r.stdout.strip()[-160:])
+        # The live price is often away from the last 5m close: keep the stop distance, but measure stop and
+        # target from the price the market order would really get (the dry run tells it).
+        dist = c["close"] - c["stop"]
+        dry = bot("propose", c["symbol"], "--type", "market", "--stop", str(c["stop"]), "--target", str(c["target"]),
+                  "--dry-run")
+        try:
+            entry = json.loads(dry.stdout[dry.stdout.index("{"):])["proposal"]["entry"]
+        except ValueError:
+            entry = c["close"]
+        stop, target = _px(entry - dist), _px(entry + 3.4 * dist)
+        r = bot("propose", c["symbol"], "--type", "market", "--side", "long", "--stop", str(stop),
+                "--target", str(target), "--expires-min", "10", "--reason", f"Long: RSI2 {c['rsi2']}, über EMA50")
+        if "Order platziert" in r.stdout:
+            print(c["symbol"], "platziert")
+        else:
+            try:
+                why = "; ".join(json.loads(r.stdout[r.stdout.index("{"):])["rejections"])
+            except ValueError:
+                why = (r.stdout + r.stderr).strip()[-160:]
+            print(c["symbol"], "abgelehnt:", why)
 
 
 if __name__ == "__main__":
