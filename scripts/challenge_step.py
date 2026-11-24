@@ -1,7 +1,7 @@
 """One step of the Kraken challenge account: settle, open crypto longs only, and after the deadline close
 everything. Kraken Funded: no leverage, no shorts; config.yaml holds the risk rules (the guard enforces them).
 
-Usage: python scripts/challenge_step.py --until "2026-11-27 22:00"   (Berlin time)
+Usage: python scripts/challenge_step.py --until "2026-12-01 22:00"   (Berlin time)
 """
 import argparse
 import json
@@ -30,7 +30,7 @@ def bot(*args):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--until", required=True, help='Berlin time, e.g. "2026-11-27 22:00"')
+    ap.add_argument("--until", required=True, help='Berlin time, e.g. "2026-12-01 22:00"')
     args = ap.parse_args()
     berlin = ZoneInfo("Europe/Berlin")
     end = datetime.strptime(args.until, "%Y-%m-%d %H:%M").replace(tzinfo=berlin)
