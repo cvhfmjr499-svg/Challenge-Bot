@@ -78,7 +78,7 @@ def cmd_propose(args, cfg):
     args.symbol = normalize(args.symbol)
     entry_type, entry = args.type, args.entry
     if entry_type == "market":
-        entry = round(market.last_price(args.symbol), 2)
+        entry = scanner._px(market.last_price(args.symbol))  # cheap coins (DOGE 0.055) need more than 2 decimals
     prop = risk.Proposal(args.symbol.upper(), entry, args.stop, args.target, entry_type=entry_type,
                          reason=args.reason, side=args.side)
     d = risk.evaluate(cfg, state, prop, now.isoformat())
