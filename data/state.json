@@ -1,22 +1,9 @@
 {
   "status": "ACTIVE",
   "created_at": "2026-10-28T16:03:21.025727+00:00",
-  "cash": 710.6702059979507,
+  "cash": 1011.3942519988515,
   "peak_equity": 1023.1781423500388,
-  "positions": {
-    "BTC-USD": {
-      "qty": 0.005,
-      "entry_price": 60142.8092,
-      "stop": 60198.976239,
-      "target": 61984.33,
-      "entry_ts": "2026-11-24T14:36:00+00:00",
-      "last_price": 60273.69140625,
-      "initial_risk": 2.83,
-      "reason": "Long: RSI2 16.6, \u00fcber EMA50",
-      "close_requested": false,
-      "best": 60485.76171875
-    }
-  },
+  "positions": {},
   "orders": [],
   "closed_trades": [
     {
@@ -90,6 +77,18 @@
       "r": 0.23,
       "exit_reason": "manuell",
       "reason": "Aggressiv: Ausbruch ueber 30-Min-Hoch (nur bei Staerke), Mom 1h +0,54%, ueber VWAP, EMA9>EMA21"
+    },
+    {
+      "symbol": "BTC-USD",
+      "qty": 0.005,
+      "entry_price": 60142.8092,
+      "exit_price": 60144.8092,
+      "entry_ts": "2026-11-24T14:36:00+00:00",
+      "exit_ts": "2026-11-24T14:56:00+00:00",
+      "pnl": 0.01,
+      "r": 0.0,
+      "exit_reason": "Stop",
+      "reason": "Long: RSI2 16.6, \u00fcber EMA50"
     }
   ],
   "cursor": {
@@ -102,7 +101,7 @@
     "AVGO": "2026-10-29T14:35:00-04:00",
     "CRWD": "2026-10-29T15:24:00-04:00",
     "DOGE-USD": "2026-10-30T10:00:00+00:00",
-    "BTC-USD": "2026-11-24T14:54:00+00:00"
+    "BTC-USD": "2026-11-24T14:56:00+00:00"
   },
   "equity_curve": [
     {
@@ -2234,6 +2233,16 @@
       "ts": "2026-11-24T14:55:29.114879+00:00",
       "equity": 1012.04,
       "floor": 970.0
+    },
+    {
+      "ts": "2026-11-24T14:56:37.219353+00:00",
+      "equity": 1011.77,
+      "floor": 970.0
+    },
+    {
+      "ts": "2026-11-24T14:57:40.551391+00:00",
+      "equity": 1011.39,
+      "floor": 970.0
     }
   ],
   "events": [
@@ -2384,8 +2393,12 @@
     {
       "ts": "2026-11-24T14:40:00+00:00",
       "text": "Stop BTC-USD nachgezogen 59577.17 -> 60198.98 (+0.51 R)"
+    },
+    {
+      "ts": "2026-11-24T14:56:00+00:00",
+      "text": "EXIT BTC-USD Stop @ 60144.81  PnL +0.01 $ (+0.00 R)"
     }
   ],
   "next_id": 13,
-  "last_tick": "2026-11-24T14:55:29.114879+00:00"
+  "last_tick": "2026-11-24T14:57:40.551391+00:00"
 }
