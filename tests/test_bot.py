@@ -16,6 +16,8 @@ def cfg():
     c = load_config()
     c["execution"]["spread_pct"] = 0  # most tests check fill logic; spread has its own test
     c.setdefault("aggressive", {})["enabled"] = False
+    # Rule tests use fixed risk values, independent of what the live challenge currently runs with.
+    c["risk"].update(risk_per_trade_pct=0.75, max_open_positions=2, max_crypto_positions=1, pause_after_losses=2)
     return c
 
 
