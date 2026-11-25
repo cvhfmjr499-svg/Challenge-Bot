@@ -18,7 +18,7 @@ risk:
   protect_fraction: 0.8        # offene Stops dürfen zusammen max. 80 % des Puffers kosten
   min_reward_risk: 3.0         # Ziel mindestens 3x so weit weg wie der Stop
   max_open_positions: 3        # offene Positionen + wartende Orders
-  max_crypto_positions: 3      # 24.11.: mehr Trades; protect_fraction begrenzt das Gesamtrisiko
+  max_crypto_positions: 1      # 25.11.: zweimal fielen 3 Krypto-Longs gleichzeitig in den Stop -> wieder 1
   max_position_pct: 60         # max. 60 % des Kontos in einer Position
   min_stop_pct: 0.5
   max_stop_pct: 6
